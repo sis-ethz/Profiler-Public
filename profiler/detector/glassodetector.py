@@ -29,7 +29,9 @@ class GLassoDetector(Detector):
             'error_bound': 1,
             'binary': True,
             'k': 5,
-            'sample_frac': 1
+            'sample_frac': 1,
+            'use_cov': True,
+            'use_corr': True
         }
         self.param.update(kwargs)
         self.columns = []
@@ -139,33 +141,38 @@ class GLassoDetector(Detector):
         m_corr = self.data.corr().values
 
         # Increasing alpha leads to more sparsity
+
         try:
-            c_cov = graphical_lasso(m_cov,alpha=self.param['alpha_cov'], mode='cd')
+            if self.param['use_cov']:
+                c_cov = graphical_lasso(m_cov,alpha=self.param['alpha_cov'], mode='cd')
         except Exception as e:
             logger.error(" Error running GLD cov: {}".format(e))
             raise
+
         try:
-            c_corr = graphical_lasso(m_corr,alpha=self.param['alpha_corr'], mode='lars')
+            if self.param['use_corr']:
+                c_corr = graphical_lasso(m_corr,alpha=self.param['alpha_corr'], mode='lars')
         except Exception as e:
-            c_corr = None
             logger.error(" Error running GLD corr: {}".format(e))
+            raise
 
         if self.param['undirected'] or (not self.param['decompose']):
-            self.cov_heatmap = pd.DataFrame(data=c_cov[0], columns=self.columns)
-            self.cov_heatmap.index = self.columns
-            if c_corr:
+            if self.param['use_cov']:
+                self.cov_heatmap = pd.DataFrame(data=c_cov[0], columns=self.columns)
+                self.cov_heatmap.index = self.columns
+            if self.param['use_corr']:
                 self.corr_heatmap = pd.DataFrame(data=c_corr[0], columns=self.columns)
                 self.corr_heatmap.index = self.columns
             end = self.profiler.timer.time_end("Train Graphical Lasso")
         else:
-            # decomposition
-            B1, perm1 = GLassoDetector.decompose(c_cov[0])
-            # get tic
-            ticks1 = [self.columns[i] for i in perm1]
-            self.cov_heatmap = pd.DataFrame(data=B1, columns=ticks1)
-            self.cov_heatmap.index = ticks1
-            
-            if c_corr:
+            if self.param['use_cov']:
+                # decomposition
+                B1, perm1 = GLassoDetector.decompose(c_cov[0])
+                # get tic
+                ticks1 = [self.columns[i] for i in perm1]
+                self.cov_heatmap = pd.DataFrame(data=B1, columns=ticks1)
+                self.cov_heatmap.index = ticks1
+            if self.param['use_corr']:
                 B2, perm2 = GLassoDetector.decompose(c_corr[0])
                 ticks2 = [self.columns[i] for i in perm2]
                 self.corr_heatmap = pd.DataFrame(data=B2, columns=ticks2)
