@@ -1,15 +1,91 @@
 from __future__ import division
 from detector import Detector
 from sklearn.covariance import graphical_lasso
+from functools import partial
+from multiprocessing import Pool
 from sklearn import preprocessing
+from sklearn.cluster import KMeans
 from scipy.linalg import ldl
 from tqdm import tqdm
+from ..globalvar import *
 import pandas as pd
 import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def compute_undirected_difference(attr, self, df):
+    if self.dataEngine.dtypes[attr] == NUMERIC:
+        if self.param['euclidean_ball']:
+            # numerical
+            logger.info("Treat %s as numerical"%attr)
+            diff = (np.square(df['left_'+attr] - df['right_'+attr]) <= self.param['error_bound'])*2 - 1
+        else:
+            logger.info("Treat %s as numerical use kmeans"%attr)
+            kmeans = KMeans(n_clusters=2)
+            val = (df['left_'+attr] - df['right_'+attr]).values
+            is_nan = np.isnan(val)
+            nan_id = np.array(range(val.shape[0]))[is_nan]
+            val_nonan = val[~is_nan].reshape(-1, 1)
+            kmeans.fit(val_nonan)
+            # make sure 0 from same 1 for different
+            labels = kmeans.labels_.astype('float')
+            if kmeans.predict(np.zeros((1, 1)))[0] == 1:
+                # 1 for same
+                labels = labels*2 - 1
+            else:
+                # 0 for same
+                labels = (1-labels)*2 - 1
+            for nid in nan_id:
+                labels = np.insert(labels, nid, np.nan)
+            diff = labels
+    else:
+        # categorical
+        if self.dataEngine.param['use_embedding'] and self.dataEngine.dtypes[attr] == EMBEDDABLE:
+            logger.info("Treat %s as embeddable categorical"%attr)
+            diff = (1-self.embedding.get_pair_distance(df['left_'+attr], df['right_'+attr], attr=attr))*2-1
+        else:
+            logger.info("Treat %s as categorical"%attr)
+            # same: 1, different: -1
+            diff = (df['left_'+attr] == df['right_'+attr])*2 - 1
+    return attr, diff
+
+
+def compute_directed_difference(attr, self, df):
+    if self.dataEngine.dtypes[attr] == NUMERIC:
+        if self.param['euclidean_ball']:
+            # numerical
+            diff = 1 - (np.abs(df['left_'+attr] - df['right_'+attr]) /
+                        np.nanmax([df['left_'+attr], df['right_'+attr]], axis=0) <= self.param['error_bound'])*1
+            logger.info("Treat %s as numerical, get differences in binary"%attr)
+        else:
+            kmeans = KMeans(n_clusters=2)
+            val = (df['left_'+attr] - df['right_'+attr]).values
+            is_nan = np.isnan(val)
+            nan_id = np.array(range(val.shape[0]))[is_nan]
+            val_nonan = val[~is_nan].reshape(-1, 1)
+            kmeans.fit(val_nonan)
+            # make sure 0 from same 1 for different
+            labels = kmeans.labels_.astype('float')
+            if kmeans.predict(np.zeros((1,1)))[0] == 1:
+                # 1 for same, need to change
+                labels = 1 - labels
+            for nid in nan_id:
+                labels = np.insert(labels, nid, np.nan)
+            diff = labels
+            logger.info("Treat %s as numerical use kmeans"%attr)
+    else:
+        # categorical
+        if self.dataEngine.param['use_embedding'] and self.dataEngine.dtypes[attr] == EMBEDDABLE:
+            diff = self.embedding.get_pair_distance(df['left_'+attr], df['right_'+attr], attr=attr)
+            logger.info("Treat %s as embeddable categorical"%attr)
+        else:
+            # same - 0, different - 1
+            diff = 1 - (df['left_'+attr] == df['right_'+attr])*1
+            logger.info("Treat %s as categorical"%attr)
+    return attr, diff
 
 
 class GLassoDetector(Detector):
@@ -24,20 +100,20 @@ class GLassoDetector(Detector):
             'alpha_cov': 0,
             'total_frac': 1,
             'overwrite': False,
-            'multiplier': 0,
-            'sort_training_data': False,
-            'error_bound': 1,
-            'binary': True,
-            'k': 5,
+            'multiplier': -1,
+            'sort_training_data': True,
+            'error_bound': 0.0001,
+            'euclidean_ball': True,
             'sample_frac': 1,
             'use_cov': True,
-            'use_corr': True
+            'use_corr': True,
         }
         self.param.update(kwargs)
         self.columns = []
         self.heatmap_name = {}
         self.init_name()
         self.data = None
+        self.embedding = self.dataEngine.embedding
 
     def init_name(self):
         if self.param['undirected']:
@@ -73,46 +149,17 @@ class GLassoDetector(Detector):
                                                          sample_frac=self.param['sample_frac'],
                                                          multiplier=self.param['multiplier'],
                                                          overwrite=self.param['overwrite'])
-            trainData = self.dataEngine.trainData
-            df = trainData.get_dataframe()
+            train_data = self.dataEngine.trainData
+            df = train_data.get_dataframe()
             data = pd.DataFrame()
             self.columns = np.array(self.dataEngine.field)
+            p = Pool(self.dataEngine.param['workers'])
             if self.param['undirected']:
-                for attr in tqdm(self.columns):
-                    if df['left_'+attr].dtype == np.float64 or df['left_'+attr].dtype == np.int64:
-                        if self.param['binary']:
-                            # numerical
-                            #logger.info("Treat %s as numerical"%attr)
-                            data['diff_'+attr] = (np.square(df['left_'+attr] - df['right_'+attr]) 
-                                                  <= self.param['error_bound'])*2 - 1
-                        else:
-                            #logger.info("Treat %s as numerical, get differences in %d-ary"%(attr, self.param['k']))
-                            from sklearn.cluster import KMeans
-                            kmeans = KMeans(n_clusters=self.param['k'])
-                            kmeans.fit(np.abs(df['left_'+attr] - df['right_'+attr]).values)
-                            data['diff_'+attr] = kmeans.labels_
-                    else:
-                        # categorical
-                        #logger.info("Treat %s as categorical"%attr)
-                        data['diff_'+attr] = (df['left_'+attr] == df['right_'+attr])*2 - 1
+                for (attr, diff) in tqdm(p.map(partial(compute_undirected_difference, self=self, df=df), self.columns)):
+                    data[attr] = diff
             else:
-                for attr in tqdm(self.columns):
-                    if df['left_'+attr].dtype == np.float64 or df['left_'+attr].dtype == np.int64:
-                        if self.param['binary']:
-                            # numerical
-                            # logger.info("Treat %s as numerical, get differences in binary"%attr)
-                            data['diff_'+attr] = 1 - (np.abs(df['left_'+attr] - df['right_'+attr]) 
-                                                      <= self.param['error_bound'])*1
-                        else:
-                            # logger.info("Treat %s as numerical, get differences in %d-ary"%(attr, self.param['k']))
-                            from sklearn.cluster import KMeans
-                            kmeans = KMeans(n_clusters=self.param['k'])
-                            kmeans.fit((df['left_'+attr] - df['right_'+attr]).values)
-                            data['diff_'+attr] = kmeans.labels_
-                    else:
-                        # categorical
-                        # logger.info("Treat %s as categorical"%attr)
-                        data['diff_'+attr] = 1 - (df['left_'+attr] == df['right_'+attr])*1
+                for (attr, diff) in tqdm(p.map(partial(compute_directed_difference, self=self, df=df), self.columns)):
+                    data[attr] = diff
             # drop zero columns and rows
             drop_col = (data != 0).any(axis=0)
             self.columns = self.columns[drop_col.values]
@@ -141,7 +188,6 @@ class GLassoDetector(Detector):
         m_corr = self.data.corr().values
 
         # Increasing alpha leads to more sparsity
-
         try:
             if self.param['use_cov']:
                 c_cov = graphical_lasso(m_cov,alpha=self.param['alpha_cov'], mode='cd')
