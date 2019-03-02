@@ -4,7 +4,6 @@ from sklearn.covariance import graphical_lasso
 from functools import partial
 from multiprocessing import Pool
 from sklearn import preprocessing
-from sklearn.cluster import KMeans
 from scipy.linalg import ldl
 from tqdm import tqdm
 from ..globalvar import *
@@ -18,29 +17,25 @@ logger.setLevel(logging.INFO)
 
 def compute_undirected_difference(attr, self, df):
     if self.dataEngine.dtypes[attr] == NUMERIC:
-        if self.param['euclidean_ball']:
+        if not self.param['user_defined']:
             # numerical
             logger.info("Treat %s as numerical"%attr)
-            diff = (np.square(df['left_'+attr] - df['right_'+attr]) <= self.param['error_bound'])*2 - 1
+            diff = np.abs(df['left_'+attr] - df['right_'+attr])
+            # numerical
+            diff = (diff / np.nanmax(diff) <= self.param['error_bound'])*2 - 1
         else:
-            logger.info("Treat %s as numerical use kmeans"%attr)
-            kmeans = KMeans(n_clusters=2)
-            val = (df['left_'+attr] - df['right_'+attr]).values
-            is_nan = np.isnan(val)
-            nan_id = np.array(range(val.shape[0]))[is_nan]
-            val_nonan = val[~is_nan].reshape(-1, 1)
-            kmeans.fit(val_nonan)
-            # make sure 0 from same 1 for different
-            labels = kmeans.labels_.astype('float')
-            if kmeans.predict(np.zeros((1, 1)))[0] == 1:
-                # 1 for same
-                labels = labels*2 - 1
-            else:
-                # 0 for same
-                labels = (1-labels)*2 - 1
-            for nid in nan_id:
-                labels = np.insert(labels, nid, np.nan)
-            diff = labels
+            # same: 1, different: -1
+            a = df['left_'+attr]
+            b = df['right_'+attr]
+            nan = np.isnan(a) | np.isnan(b)
+            nan_id = np.array(range(a.shape[0]))[nan]
+            try:
+                diff = self.param['user_defined'](a[~nan], b[~nan])
+                for nid in nan_id:
+                    diff = np.insert(diff, nid, np.nan)
+            except:
+                raise
+            logger.info("Treat %s as numerical, using user defined function"%attr)
     else:
         # categorical
         if self.dataEngine.param['use_embedding'] and self.dataEngine.dtypes[attr] == EMBEDDABLE:
@@ -55,27 +50,20 @@ def compute_undirected_difference(attr, self, df):
 
 def compute_directed_difference(attr, self, df):
     if self.dataEngine.dtypes[attr] == NUMERIC:
-        if self.param['euclidean_ball']:
+        if not self.param['user_defined']:
+            diff = np.abs(df['left_'+attr] - df['right_'+attr])
             # numerical
-            diff = 1 - (np.abs(df['left_'+attr] - df['right_'+attr]) /
-                        np.nanmax([df['left_'+attr], df['right_'+attr]], axis=0) <= self.param['error_bound'])*1
-            logger.info("Treat %s as numerical, get differences in binary"%attr)
+            diff = 1 - (diff / np.nanmax(diff) <= self.param['error_bound'])*1
+            logger.info("Treat %s as numerical" % attr)
         else:
-            kmeans = KMeans(n_clusters=2)
-            val = (df['left_'+attr] - df['right_'+attr]).values
-            is_nan = np.isnan(val)
-            nan_id = np.array(range(val.shape[0]))[is_nan]
-            val_nonan = val[~is_nan].reshape(-1, 1)
-            kmeans.fit(val_nonan)
-            # make sure 0 from same 1 for different
-            labels = kmeans.labels_.astype('float')
-            if kmeans.predict(np.zeros((1,1)))[0] == 1:
-                # 1 for same, need to change
-                labels = 1 - labels
-            for nid in nan_id:
-                labels = np.insert(labels, nid, np.nan)
-            diff = labels
-            logger.info("Treat %s as numerical use kmeans"%attr)
+            # same - 0, different - 1
+            a = df['left_'+attr]
+            b = df['right_'+attr]
+            nan = np.isnan(a) | np.isnan(b)
+            diff = np.zeros(a.shape[0], dtype=float)
+            diff[nan] = np.nan
+            diff[~nan] = self.param['user_defined'](a[~nan], b[~nan])
+            logger.info("Treat %s as numerical, using user defined function"%attr)
     else:
         # categorical
         if self.dataEngine.param['use_embedding'] and self.dataEngine.dtypes[attr] == EMBEDDABLE:
@@ -103,7 +91,7 @@ class GLassoDetector(Detector):
             'multiplier': -1,
             'sort_training_data': True,
             'error_bound': 0.0001,
-            'euclidean_ball': True,
+            'user_defined': None,
             'sample_frac': 1,
             'use_cov': True,
             'use_corr': True,

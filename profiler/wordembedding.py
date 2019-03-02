@@ -112,15 +112,11 @@ class Embedding(object):
 
     def get_pair_distance(self, a, b, attr=None):
         nan = (a == self.dataEngine.param['nan']) | (b == self.dataEngine.param['nan'])
-        nan_id = np.array(range(a.shape[0]))[nan]
         vec1 = self.get_array_vectors(a[~nan], attr=attr)
         vec2 = self.get_array_vectors(b[~nan], attr=attr)
-
-        #p = Pool(self.dataEngine.param['workers'])
-        #sim = p.map(get_cos, zip(vec1, vec2))
-        sim = [cosine(v1, v2) for v1, v2 in tqdm(zip(vec1, vec2))]
-        for nid in nan_id:
-            sim = np.insert(sim, nid, np.nan)
+        sim = np.zeros(a.shape[0], dtype=float)
+        sim[nan] = np.nan
+        sim[~nan] = [cosine(v1, v2) for v1, v2 in tqdm(zip(vec1, vec2))]
         return sim
 
 

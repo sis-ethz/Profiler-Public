@@ -54,6 +54,8 @@ t1&t2&EQ(t1.ProviderNumber,t2.ProviderNumber)&EQ(t1.Address1,t2.Address1)&EQ(t1.
 t1&t2&EQ(t1.HospitalName,t2.HospitalName)&EQ(t1.Address1,t2.Address1)&EQ(t1.City,t2.City)&IQ(t1.PhoneNumber,t2.PhoneNumber)
 t1&t2&EQ(t1.ProviderNumber,t2.ProviderNumber)&EQ(t1.HospitalName,t2.HospitalName)&EQ(t1.Address1,t2.Address1)&EQ(t1.City,t2.City)&IQ(t1.PhoneNumber,t2.PhoneNumber)
 t1&t2&EQ(t1.ProviderNumber,t2.ProviderNumber)&IQ(t1.EmergencyService,t2.EmergencyService)
+t1&t2&EQ(t1.HospitalName,t2.HospitalName)&IQ(t1.EmergencyService,t2.EmergencyService)
+t1&t2&EQ(t1.ProviderNumber,t2.ProviderNumber)&EQ(t1.HospitalName,t2.HospitalName)&IQ(t1.EmergencyService,t2.EmergencyService)
 t1&t2&EQ(t1.Condition,t2.Condition)&IQ(t1.MeasureCode,t2.MeasureCode)
 t1&t2&EQ(t1.Condition,t2.Condition)&IQ(t1.Stateavg,t2.Stateavg)
 t1&t2&EQ(t1.MeasureCode,t2.MeasureCode)&IQ(t1.Stateavg,t2.Stateavg)
