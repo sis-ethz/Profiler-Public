@@ -1,12 +1,12 @@
 from __future__ import division
-from detector import Detector
+from profiler.detector.detector import Detector
 from sklearn.covariance import graphical_lasso
 from functools import partial
 from multiprocessing import Pool
 from sklearn import preprocessing
 from scipy.linalg import ldl
 from tqdm import tqdm
-from ..globalvar import *
+from profiler.globalvar import *
 import pandas as pd
 import numpy as np
 import logging
@@ -95,12 +95,14 @@ class GLassoDetector(Detector):
             'sample_frac': 1,
             'use_cov': True,
             'use_corr': True,
+            'data': None,
+            'max_iter':100,
         }
         self.param.update(kwargs)
         self.columns = []
         self.heatmap_name = {}
         self.init_name()
-        self.data = None
+        self.data = self.param['data']
         self.embedding = self.dataEngine.embedding
 
     def init_name(self):
@@ -141,18 +143,32 @@ class GLassoDetector(Detector):
             df = train_data.get_dataframe()
             data = pd.DataFrame()
             self.columns = np.array(self.dataEngine.field)
-            p = Pool(self.dataEngine.param['workers'])
-            if self.param['undirected']:
-                for (attr, diff) in tqdm(p.map(partial(compute_undirected_difference, self=self, df=df), self.columns)):
-                    data[attr] = diff
+            logger.info('Taking Differences ... ')
+            if self.dataEngine.param['workers'] <= 1:
+                for attr in tqdm(self.columns):
+                    if self.param['undirected']:
+                        _, data[attr] = compute_undirected_difference(attr, self=self, df=df)
+                    else:
+                        _, data[attr] = compute_directed_difference(attr, self=self, df=df)
             else:
-                for (attr, diff) in tqdm(p.map(partial(compute_directed_difference, self=self, df=df), self.columns)):
-                    data[attr] = diff
+                p = Pool(self.dataEngine.param['workers'])
+                if self.param['undirected']:
+                    for (attr, diff) in p.map(partial(compute_undirected_difference, self=self, df=df), self.columns):
+                        data[attr] = diff
+                else:
+                    for (attr, diff) in p.map(partial(compute_directed_difference, self=self, df=df), self.columns):
+                        data[attr] = diff
             # drop zero columns and rows
             drop_col = (data != 0).any(axis=0)
-            self.columns = self.columns[drop_col.values]
             data = data.loc[:, (data != 0).any(axis=0)]
             data = data.loc[(data != 0).any(axis=1), :]
+            # check singular
+            to_drop = []
+            for col in data:
+                if len(data[col].unique()) == 1:
+                    to_drop.append(col)
+            if len(to_drop) != 0:
+                data = data.drop(to_drop, axis=1)
         else:
             # GL
             data = pd.DataFrame()
@@ -167,7 +183,9 @@ class GLassoDetector(Detector):
     
     def run(self):
         # load training data
-        self.data = self.get_training_data()
+        if self.data is None:
+            self.data = self.get_training_data()
+        self.columns = self.data.columns.values
         self.profiler.timer.time_start("Train Graphical Lasso")
         # Scale dataset
         scaler = preprocessing.MinMaxScaler()
@@ -178,36 +196,40 @@ class GLassoDetector(Detector):
         # Increasing alpha leads to more sparsity
         try:
             if self.param['use_cov']:
-                c_cov = graphical_lasso(m_cov,alpha=self.param['alpha_cov'], mode='cd')
+                c_cov = graphical_lasso(m_cov,alpha=self.param['alpha_cov'], mode='cd', 
+                                        max_iter=self.param['max_iter'])
         except Exception as e:
             logger.error(" Error running GLD cov: {}".format(e))
+            return self.data
             raise
 
         try:
             if self.param['use_corr']:
-                c_corr = graphical_lasso(m_corr,alpha=self.param['alpha_corr'], mode='lars')
+                c_corr = graphical_lasso(m_corr,alpha=self.param['alpha_corr'], mode='lars', 
+                                        max_iter=self.param['max_iter'])
         except Exception as e:
             logger.error(" Error running GLD corr: {}".format(e))
+            return self.data
             raise
 
         if self.param['undirected'] or (not self.param['decompose']):
             if self.param['use_cov']:
-                self.cov_heatmap = pd.DataFrame(data=c_cov[0], columns=self.columns)
+                self.cov_heatmap = pd.DataFrame(data=c_cov[1], columns=self.columns)
                 self.cov_heatmap.index = self.columns
             if self.param['use_corr']:
-                self.corr_heatmap = pd.DataFrame(data=c_corr[0], columns=self.columns)
+                self.corr_heatmap = pd.DataFrame(data=c_corr[1], columns=self.columns)
                 self.corr_heatmap.index = self.columns
             end = self.profiler.timer.time_end("Train Graphical Lasso")
         else:
             if self.param['use_cov']:
                 # decomposition
-                B1, perm1 = GLassoDetector.decompose(c_cov[0])
+                B1, perm1 = GLassoDetector.decompose(c_cov[1])
                 # get tic
                 ticks1 = [self.columns[i] for i in perm1]
                 self.cov_heatmap = pd.DataFrame(data=B1, columns=ticks1)
                 self.cov_heatmap.index = ticks1
             if self.param['use_corr']:
-                B2, perm2 = GLassoDetector.decompose(c_corr[0])
+                B2, perm2 = GLassoDetector.decompose(c_corr[1])
                 ticks2 = [self.columns[i] for i in perm2]
                 self.corr_heatmap = pd.DataFrame(data=B2, columns=ticks2)
                 self.corr_heatmap.index = ticks2

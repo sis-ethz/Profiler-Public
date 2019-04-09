@@ -11,8 +11,6 @@ pybind11
 pandas
 six
 scikit-learn>=0.20.0
-sklearn-contrib-lightning
 ipykernel
 seaborn
 gensim
-

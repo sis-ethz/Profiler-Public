@@ -10,7 +10,7 @@ from tqdm import tqdm
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from gensim.models.fasttext import FastText
 from scipy.spatial.distance import cosine
-from globalvar import *
+from profiler.globalvar import *
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -95,7 +95,7 @@ class Embedding(object):
         if self.model:
             self.dim = self.model.dim
         else:
-            self.dim = self.models.values()[0].dim
+            self.dim = list(self.models.values())[0].dim
 
     def get_word_vector(self, word, attr=None):
         if word == self.dataEngine.param['nan']:

@@ -1,7 +1,7 @@
-from detector.glassodetector import GLassoDetector
+from profiler.detector.glassodetector import GLassoDetector
 from sqlalchemy import create_engine
-from dataEngine import DataEngine
-from utility import GlobalTimer
+from profiler.dataEngine import DataEngine
+from profiler.utility import GlobalTimer
 import pandas as pd
 import logging
 
@@ -80,7 +80,7 @@ class Profiler(object):
         self.heatmap_name = {}
         self.heatmap_csv_name = {}
         for name in ['cov', 'corr']:
-            self.heatmap_name[name] = "{}_{}_{}".format(self.ID, self.dataEngine.tableName, self.gl.heatmap_name[name])
+            self.heatmap_name[name] = "{}_{}".format(self.ID, self.gl.heatmap_name[name])
             self.heatmap_csv_name[name] = "{}.csv".format(hm_path+self.heatmap_name[name])
         self.save_heatmap(save_heatmap=save_heatmap)
 

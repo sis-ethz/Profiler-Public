@@ -1,7 +1,7 @@
 import pandas as pd
 from tqdm import trange, tqdm
-from wordembedding import Embedding
-from globalvar import *
+from profiler.wordembedding import Embedding
+from profiler.globalvar import *
 import numpy as np
 import json
 import math
@@ -73,7 +73,7 @@ class DataEngine(object):
             'right_prefix': 'right_',
             'min_categories_for_embedding': 10,
             'nan': "_empty_",
-            'workers': 10,
+            'workers': 1,
         }
         param.update(kwargs)
         self.param = param
