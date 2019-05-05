@@ -128,6 +128,7 @@ class DataEngine(object):
             if self.df.iloc[:, i].unique().shape[0] >= min_cate and self.param['use_embedding']:
                 types[self.field[i]] = "embeddable_categorical"
                 continue
+            self.df[self.field[i]] = self.df[self.field[i]].astype('str')
             types[self.field[i]] = "categorical"
 
         logger.info("inferred types of attributes: {}".format(json.dumps(types, indent=4)))
@@ -152,7 +153,7 @@ class DataEngine(object):
                 self.df[n] = pd.to_numeric(self.df[n], errors='coerce')
                 logger.info("updated types of {} to 'numeric'".format(n))
             else:
-                self.df[n] = self.df[n].astype('object')
+                self.df[n] = self.df[n].astype('str')
                 logger.info("updated types of {} to '{}'".format(n, tp))
 
         if isinstance(names, str):
@@ -181,8 +182,11 @@ class DataEngine(object):
         if dropna:
             self.df.dropna(axis=0, how='any', inplace=True)
 
-        # (optional) replace empty cells
-        self.df = self.df.replace(np.nan, self.param['nan'], regex=True)
+        # (optional) replace empty cells in non-numeric columns
+        for i, c in enumerate(self.df.dtypes):
+            if np.issubdtype(c, np.number):
+                continue
+            self.df.iloc[:,i] = self.df.iloc[:,i].replace(np.nan, self.param['nan'], regex=True)
 
         # drop empty columns
         self.df.dropna(axis=1, how='all', inplace=True)
