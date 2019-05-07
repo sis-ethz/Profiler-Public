@@ -1,7 +1,7 @@
-from detector.glassodetector import GLassoDetector
+from profiler.detector.glassodetector import GLassoDetector
 from sqlalchemy import create_engine
-from dataEngine import DataEngine
-from utility import GlobalTimer
+from profiler.dataEngine import DataEngine
+from profiler.utility import GlobalTimer
 import pandas as pd
 import logging
 
@@ -12,13 +12,14 @@ logger.setLevel(logging.INFO)
 
 
 class Profiler(object):
-    def __init__(self, use_db=True, db='profiler', host='localhost', 
+    def __init__(self, use_db=True, db='profiler', ID="", host='localhost',
                  user="profileruser", password="abcd1234", port=5432):
         '''
         constructor for profiler, create a database or connect to database if existed
         create a data engine object
         :param db: database name, default None
         '''
+        self.ID = ID
         self.use_db = use_db
         if use_db:
             self.connect_db(db, host, user, password, port)
@@ -45,78 +46,22 @@ class Profiler(object):
                   ):
         # load data
         self.key = key
-        self.timer.time_start("Preprocess Data and Create Embedding")
+        self.timer.time_start("Preprocess Data")
         self.dataEngine.load_data(input_type=input_type, name=name, input_df=input_df, **kwargs)
-        self.timer.time_end("Preprocess Data and Create Embedding")
-        
-    # def run_mix_attention(self,
-    #         # training data
-    #         overwrite=False,
-    #         # attention model
-    #         frac=1,
-    #         model="joint",
-    #         device="cpu",
-    #         save_heatmap="csv",
-    #         hm_path="./",
-    #         ID="",
-    #         sparse=False,
-    #         **kwargs):
-    #     # save heatmap
-    #     if 'factor' in kwargs.keys() and sparse:
-    #         l = str(kwargs['factor']).replace(".","dot")
-    #         self.heatmap_name = "{}_{}_{}_osc{}_heatmap".format(ID, self.dataEngine.tableName, model, l)
-    #     else:
-    #         self.heatmap_name = "{}_{}_{}_heatmap".format(ID, self.dataEngine.tableName, model)
-    #
-    #     # train attention model
-    #     self.attention = MixAttentionDetector(self, frac=frac, mode=model, device=device, overwrite=overwrite,
-    #                                           sparse=sparse, **kwargs)
-    #     time = self.attention.run()
-    #
-    #     # save heatmap
-    #     self.heatmap = self.attention.heatmap
-    #     self.heatmap_csv_name = "{}.csv".format(hm_path+self.heatmap_name)
-    #     self.save_heatmap(save_heatmap=save_heatmap)
-    #
-    #     self.timer.time_point("DONE")
-    #     return time
+        self.timer.time_end("Preprocess Data")
 
-    # def run_attention(self, save_heatmap="csv", hm_path="./", ID="", sparse=False, **kwargs):
-    #     '''
-    #     method for run attention model with mi estimator as an option
-    #     # attention model
-    #     :param attention_only:
-    #     :param frac:
-    #     :param model:[joint, single, vanilla]
-    #     :param device:
-    #     :param drop:
-    #     :param epochs:
-    #     :param visual:
-    #     :param save_heatmap:
-    #     :param ID: identifier for heatmap
-    #
-    #     :return:
-    #     '''
-    #     # save heatmap
-    #     if 'factor' in kwargs.keys() and sparse:
-    #         l = str(kwargs['factor']).replace(".","dot")
-    #         self.heatmap_name = "{}_{}_{}_osc{}_heatmap".format(ID, self.dataEngine.tableName, model, l)
-    #     else:
-    #         self.heatmap_name = "{}_{}_{}_heatmap".format(ID, self.dataEngine.tableName, model)
-    #
-    #     # train attention model
-    #     self.attention = AttentionDetector(self, sparse=sparse, **kwargs)
-    #     time = self.attention.run()
-    #
-    #     # save heatmap
-    #     self.heatmap = self.attention.heatmap
-    #     self.heatmap_csv_name = "{}.csv".format(hm_path+self.heatmap_name)
-    #     self.save_heatmap(save_heatmap=save_heatmap)
-    #
-    #     self.timer.time_point("DONE")
-    #     return time
+    def load_embedding(self):
+        self.timer.time_start("Load Embedding")
+        self.dataEngine.load_embedding()
+        self.timer.time_end("Load Embedding")
 
-    def run_graphical_lasso(self, save_heatmap="csv", ID="", hm_path="./", **kwargs):
+    def change_dtypes(self, names, types):
+        self.dataEngine.change_dtypes(names, types)
+
+    def reset_dtypes(self):
+        self.dataEngine.dtypes = self.dataEngine.original_dtypes
+
+    def run_graphical_lasso(self, save_heatmap="csv", hm_path="./", **kwargs):
 
         # train LR model
         self.gl = GLassoDetector(self, **kwargs)
@@ -127,12 +72,15 @@ class Profiler(object):
         try:
             self.heatmap['corr'] = self.gl.corr_heatmap
         except:
-            logger.warn('did not produce corr')
-        self.heatmap['cov'] = self.gl.cov_heatmap
+            logger.info('did not produce correlation')
+        try:
+            self.heatmap['cov'] = self.gl.cov_heatmap
+        except:
+            logger.info('did not produce covariance')
         self.heatmap_name = {}
         self.heatmap_csv_name = {}
         for name in ['cov', 'corr']:
-            self.heatmap_name[name] = "{}_{}_{}".format(ID, self.dataEngine.tableName, self.gl.heatmap_name[name])
+            self.heatmap_name[name] = "{}_{}".format(self.ID, self.gl.heatmap_name[name])
             self.heatmap_csv_name[name] = "{}.csv".format(hm_path+self.heatmap_name[name])
         self.save_heatmap(save_heatmap=save_heatmap)
 

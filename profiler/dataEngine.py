@@ -1,10 +1,10 @@
 import pandas as pd
 from tqdm import trange, tqdm
-from collections import defaultdict
+from profiler.wordembedding import Embedding
+from profiler.globalvar import *
 import numpy as np
 import json
 import math
-import random
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,29 +17,32 @@ class DataEngine(object):
         self.profiler = profiler
         self.use_db = use_db
         self.loaded = False
-        self.embedding = None
         self.tableName = ''
         self.numAttr = 0
         self.numTuple = 0
-        self.dtype = None
         self.trainData = None
         self.trainAttr = {}
         self.field = []
         self.df = None
-        self.left = ''
-        self.right = ''
-
+        self.embedding = None
+        self.param = {}
+        self.key = None
+        self.left_prefix = 'left_'
+        self.right_prefix = 'right_'
+        self.dtypes = None
+        self.original_dtypes = None
 
     '''
     LOAD AND PREPROCESS DATA
     '''
 
-    def load_data(self, input_type='file', input_df=None, name=None, **kwargs):
+    def load_data(self, input_type='file', input_df=None, path=None, **kwargs):
         '''
         if input type is table, print schema of the table by name
         else if input type is file, load data into database and print the schema of the table
-        :param input: source for data input, default 'file', possible types: 'file', 'table'
-        :param name: table name or file name
+        :param input_type: source for data input, default 'file', possible types: 'file', 'table'
+        :param path: file name
+        :param name: table name
         :param header: if the first row is a header, use 'infer', default None
         :param sep: separator, default ','
         :param na: scalar, str, list-like, or dict, default None
@@ -50,165 +53,163 @@ class DataEngine(object):
         :param embedding: name of embedding, default one-hot-encoding
         :param cache: path of downloaded embedding
         :param load_embedding: if set true, will load/train embedding model
+        :param embedding_type: "attribute", "tuple", "one-hot", "pre-trained"
         :return:
         '''
         
         param = {
-            'pre_trained': False,
-            'one_hot': True,
-            'embedding': 'embedding.bin',
-            'embedding_cache': './embedding_cache',
-            'na_values': {"?","", "None", "none", "nan", "NaN"},
+            'use_embedding': False,
+            'embedding_type': ATTRIBUTE_EMBEDDING,
+            'embedding_file': 'local_embedding.bin',
+            'embedding_size': 100,
+            'na_values': {"?", "", "None", "none", "nan", "NaN"},
             'sep': ',',
             'header': 'infer',
             'dropna': False,
             'dropcol': None,
             'dropkey': False,
-            'fillna': False,
-            'dtype': None,
-            'preprocess': True,
+            'fillna': True,
             'left_prefix': 'left_',
             'right_prefix': 'right_',
+            'min_categories_for_embedding': 10,
+            'nan': "_empty_",
+            'workers': 1,
         }
         param.update(kwargs)
-        self.left = param['left_prefix']
-        self.right = param['right_prefix']
-        if isinstance(param['dtype'], str):
-            try:
-                param['dtype'] = json.load(open(param['dtype']))
-            except:
-                logger.warn('Cannot load dtype, set to auto')
-                param['dtype'] = None
+        self.param = param
+        setattr(self, 'left_prefix', param['left_prefix'])
+        setattr(self, 'right_prefix', param['right_prefix'])
+
         self.key = self.profiler.key
+        self.tableName = "t{}".format(self.profiler.ID)
 
         if input_type == "dataframe":
-            # config
-            self.tableName = name
-
-            # preprocessing
-            raw_df = input_df
-            if param['preprocess']:
-                df = self.preprocess(raw_df, param['dropna'], param['dropkey'], param['dropcol'], param['fillna'])
-            else:
-                df = raw_df
-
-            if self.use_db:
-                # create table in db
-                self.profiler.create_table_df(df, self.tableName)
-
-            # save fieldname
-            self.field = list(df.columns)
-
-            logger.info("Loaded table {}".format(self.tableName))
-
-        elif input_type == 'file':
-            # input type is file, load file into database
-            if '/' in name:
-                self.tableName = name.split('/')[-1].split('.')[-2]
-            else:
-                self.tableName = name.split('.')[-2]
-
+            self.df = input_df
+        elif input_type == "file":
             # setup header:
             if param['header'].lower() == 'none':
                 param['header'] = None
-
             # load data from file
-            raw_df = pd.read_csv(name, encoding='utf8', header=param['header'], sep=param['sep'],
-                                 na_values=param['na_values'], dtype=param['dtype'])
-            self.dtype = {}
-            for col, t in zip(raw_df.columns.values, raw_df.dtypes.values):
-                self.dtype[col] = t
-
-            # prerocess
-            if param['preprocess']:
-                df = self.preprocess(raw_df, param['dropna'], param['dropkey'], param['dropcol'], param['fillna'])
-            else:
-                df = raw_df
-
-            # create table in db
-            if self.use_db:
-                self.profiler.create_table_df(df,self.tableName)
-            else:
-                self.df = df
-
-            # save fieldname
-            self.field = list(df.columns)
-
-            logger.info("Loaded table {}".format(self.tableName))
-
+            self.df = pd.read_csv(path, encoding='utf8', header=param['header'], sep=param['sep'],
+                                  na_values=param['na_values'])
         elif input_type == 'table':
             if not self.use_db:
                 raise Exception('SET TO NOT USING DB')
-
-            # assume data is preprocessed
-
-            # input type is a table in the database, connect to db
-            self.tableName = name
-
-            # save field
-            df = self.profiler.query_df("SELECT * FROM {}".format(self.tableName))
-            self.field = list(df.columns)
-
-            logger.info("Loaded table".format(self.tableName))
+            self.df = self.profiler.query_df("SELECT * FROM {}".format(self.tableName))
         else:
             raise ValueError("Please specify either \'file\' or \'table\' or \'dataframe\' as a source for data input")
+        logger.info("Loaded table".format(self.tableName))
+
+        # preprocessing
+        self.df = self.preprocess_df(param['dropna'], param['dropkey'], param['dropcol'])
 
         # log basic data information
-        if self.use_db:
-            self.numTuple = self.profiler.query('SELECT COUNT(*) FROM {}'.format(self.tableName))[0]
-        else:
-            self.numTuple = df.shape[0]
+        self.infer_column_types(param['min_categories_for_embedding'])
+        self.numTuple = self.df.shape[0]
         logger.info("Table has {} attributes and {} tuples".format(len(self.field), self.numTuple))
-
-        # load embedding
-        if param['load_embedding']:
-            logger.info("Creating Embedding ...")
-            raise Exception("not implemented")
-
         self.loaded = True
 
-    def preprocess(self, df, dropna, dropkey, dropcol, fillna):
+    def load_embedding(self):
+        if self.param['embedding_type'] not in EMBEDDING_TYPES:
+            raise Exception("Embedding Type {} is not supported. "
+                            "\nSupported types are: {}".format(self.param['embedding_type'], EMBEDDING_TYPES))
+        self.embedding = Embedding(self, self.param['embedding_file'], self.param['embedding_type'],
+                                   embedding_size=self.param['embedding_size'])
+
+    def infer_column_types(self, min_cate):
+        types = {}
+        self.field = list(self.df.columns)
+        for i, c in enumerate(self.df.dtypes):
+            # test if it is numeric
+            if np.issubdtype(c, np.number):
+                types[self.field[i]] = "numeric"
+                continue
+            # test if it is category with few types
+            if self.df.iloc[:, i].unique().shape[0] >= min_cate and self.param['use_embedding']:
+                types[self.field[i]] = "embeddable_categorical"
+                continue
+            self.df[self.field[i]] = self.df[self.field[i]].astype('str')
+            types[self.field[i]] = "categorical"
+
+        logger.info("inferred types of attributes: {}".format(json.dumps(types, indent=4)))
+        self.dtypes = types
+        self.original_dtypes = types
+
+    def change_dtypes(self, names, types):
+
+        def validate_type(tp):
+            if tp not in DATA_TYPES:
+                raise ValueError("Invalid Attribute Type")
+            return tp
+
+        def validate_name(n):
+            if n not in self.dtypes:
+                raise ValueError("Invalid Attribute Name")
+            return n
+
+        def update(n, tp):
+            self.dtypes[validate_name(n)] = validate_type(tp)
+            if tp == NUMERIC:
+                self.df[n] = pd.to_numeric(self.df[n], errors='coerce')
+                logger.info("updated types of {} to 'numeric'".format(n))
+            else:
+                self.df[n] = self.df[n].astype('str')
+                logger.info("updated types of {} to '{}'".format(n, tp))
+
+        if isinstance(names, str):
+            update(names, types)
+        else:
+            if isinstance(types, str):
+                for name in names:
+                    update(name, types)
+            else:
+                for name, t in zip(names, types):
+                    update(name, t)
+
+    def preprocess_df(self, dropna, dropkey, dropcol):
 
         logger.info("Preprocessing Data...")
 
         # (optional) drop specified columns
         if dropcol is not None:
-            df = df.drop(dropcol, axis=1)
+            self.df = self.df.drop(dropcol, axis=1)
 
         # (optional) drop column that is key
-        if self.key in list(df.columns) and dropkey:
-            df = df.drop([self.key], axis=1)
+        if self.key in list(self.df.columns) and dropkey:
+            self.df = self.df.drop([self.key], axis=1)
 
         # (optional) drop rows with empty values
         if dropna:
-            df.dropna(axis=0, how='any', inplace=True)
+            self.df.dropna(axis=0, how='any', inplace=True)
 
-        # (optional) replace empty cells
-        if fillna:
-            df = df.replace(np.nan, "_empty_", regex=True)
+        # (optional) replace empty cells in non-numeric columns
+        for i, c in enumerate(self.df.dtypes):
+            if np.issubdtype(c, np.number):
+                continue
+            self.df.iloc[:,i] = self.df.iloc[:,i].replace(np.nan, self.param['nan'], regex=True)
 
         # drop empty columns
-        df.dropna(axis=1, how='all', inplace=True)
+        self.df.dropna(axis=1, how='all', inplace=True)
 
         # drop columns with only one distinct value
         def drop_single_value(df):
             res = df
             for col in df.columns:
                 if len(df[df[col].notnull()][col].unique()) == 1:
-                    res = res.drop(col,axis=1)
+                    res = res.drop(col, axis=1)
             return res
-        df = drop_single_value(df)
+        #self.df = drop_single_value(self.df)
 
         # drop columns with all distinct value
         def drop_distinct_value(df):
             res = df
             for col in df.columns:
                 if len(df[df[col].notnull()][col].unique()) == df[df[col].notnull()].shape[0]:
-                    res = res.drop(col,axis=1)
+                    res = res.drop(col, axis=1)
             return res
-        df = drop_distinct_value(df)
+        #self.df = drop_distinct_value(self.df)
 
-        return df
+        return self.df
 
     def get_data(self, mode="row"):
         '''
@@ -226,6 +227,37 @@ class DataEngine(object):
              for rid in range(df.shape[0]):
                 row = df.iloc[rid, :].values
                 row = np.core.defchararray.array(row).encode("utf-8").tolist()
+                data += row
+        return data
+
+
+    '''
+    HELPER METHODS FOR CREATING LOCALLY-TRAINED WORD EMBEDDINGS
+    '''
+    def get_embedded_columns(self):
+        return [f for f in self.field if self.dtypes[f] == EMBEDDABLE]
+
+    def get_embedding_source(self, embedding_type="attribute"):
+        '''
+        used for training word embedding
+        :return:
+        '''
+        data = []
+        df = self.get_dataframe()
+        if embedding_type == "attribute":
+            data = {}
+            for c in self.get_embedded_columns():
+                col = df[c].values
+                data[c] = [x.split(" ") for x in col]
+        elif embedding_type == "row":
+            for rid in range(df.shape[0]):
+                row = df.iloc[rid, :].values
+                sentence = np.core.defchararray.array(row).encode("utf-8")
+                data.append(sentence)
+        elif embedding_type == "one-hot":
+            for rid in range(df.shape[0]):
+                row = df.iloc[rid, :].values
+                row = row.tolist()
                 data += row
         return data
 
@@ -250,9 +282,9 @@ class DataEngine(object):
         sampled_train_field = {}
         logger.info("Original data size: {}".format(table.shape))
         for col in columns:
-            left_columns.append(self.left + col)
-            right_columns.append(self.right + col)
-            sampled_train_field[col] = (self.left + col,self.right + col)
+            left_columns.append(self.left_prefix + col)
+            right_columns.append(self.right_prefix + col)
+            sampled_train_field[col] = (self.left_prefix + col, self.right_prefix + col)
         try:
             if overwrite:
                 raise Exception("Require Overwriting")
@@ -331,9 +363,9 @@ class DataEngine(object):
         right_columns = []
         sampled_train_field = {}
         for col in columns:
-            left_columns.append(self.left + col)
-            right_columns.append(self.right + col)
-            sampled_train_field[col] = (self.left + col,self.right + col)
+            left_columns.append(self.left_prefix + col)
+            right_columns.append(self.right_prefix + col)
+            sampled_train_field[col] = (self.left_prefix + col,self.right_prefix + col)
 
         # check if existed
         try:
@@ -345,22 +377,23 @@ class DataEngine(object):
         except:
             logger.info("Creating Joint Training Data (total_frac = %f, sample_frac = %f)" % (total_frac, sample_frac))
             all_merged = []
-            if multiplier != -1 and multiplier != 1:
-                if multiplier < 1:
-                    # fraction
-                    multiplier = int(multiplier*len(columns))
+            if multiplier > 0:
+                multiplier = min(int(multiplier), len(columns))
             else:
                 multiplier = len(columns)
-            if isinstance(multiplier, float):
-                multiplier = min(int(multiplier), len(columns))
+            logger.info("multiplier: %d" % multiplier)
             prog_bar = tqdm(total=multiplier)
             for i, column in enumerate(columns):
+                if self.dtypes[column] != NUMERIC:
+                    this_table = table.copy().loc[table[column] != self.param['nan'], :]
+                else:
+                    this_table = table.copy().loc[np.isnan(table[column].values), :]
                 if i+1 > multiplier:
                     break
                 if sample_frac != 1:
-                    shuffled_table = table.sample(frac=sample_frac)
+                    shuffled_table = this_table.sample(frac=sample_frac)
                 else:
-                    shuffled_table = table
+                    shuffled_table = this_table
                 sorted_table = shuffled_table.sort_values(by=column)
                 shifted = sorted_table.iloc[1:].reset_index(drop=True)
                 shifted.columns = right_columns
