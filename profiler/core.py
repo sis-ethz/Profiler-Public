@@ -1,9 +1,8 @@
-from profiler.detector.glassodetector import GLassoDetector
-from sqlalchemy import create_engine
-from profiler.dataEngine import DataEngine
 from profiler.utility import GlobalTimer
+from profiler.dataset import Dataset
 import pandas as pd
-import logging
+import numpy as np
+import logging, os, random
 
 
 logging.basicConfig()
@@ -11,9 +10,156 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+logging.basicConfig(format="%(asctime)s - [%(levelname)5s] - %(message)s", datefmt='%H:%M:%S')
+root_logger = logging.getLogger()
+gensim_logger = logging.getLogger('gensim')
+root_logger.setLevel(logging.INFO)
+gensim_logger.setLevel(logging.WARNING)
+
+
+# Arguments for Profiler
+arguments = [
+    (('-u', '--db_user'),
+        {'metavar': 'DB_USER',
+         'dest': 'db_user',
+         'default': 'profileruser',
+         'type': str,
+         'help': 'User for DB used to persist state.'}),
+    (('-p', '--db-pwd', '--pass'),
+        {'metavar': 'DB_PWD',
+         'dest': 'db_pwd',
+         'default': 'abcd1234',
+         'type': str,
+         'help': 'Password for DB used to persist state.'}),
+    (('-h', '--db-host'),
+        {'metavar': 'DB_HOST',
+         'dest': 'db_host',
+         'default': 'localhost',
+         'type': str,
+         'help': 'Host for DB used to persist state.'}),
+    (('-d', '--db_name'),
+        {'metavar': 'DB_NAME',
+         'dest': 'db_name',
+         'default': 'profiler',
+         'type': str,
+         'help': 'Name of DB used to persist state.'}),
+    (('-t', '--threads'),
+     {'metavar': 'THREADS',
+      'dest': 'threads',
+      'default': 20,
+      'type': int,
+      'help': 'How many threads to use for parallel execution. If <= 1, then no pool workers are used.'}),
+    (('-n', '--null_policy'),
+        {'metavar': 'DB_NAME',
+         'dest': 'null_policy',
+         'default': 'neq',
+         'type': str,
+         'help': 'Policy to handle null. [neq, eq, skip]'}),
+]
+
+# Flags for Profiler
+flags = [
+    (tuple(['--usedb']),
+        {'default': False,
+         'dest': 'verbose',
+         'action': 'store_true',
+         'help': 'verbose'}),
+]
+
+
 class Profiler(object):
+    """
+    Main Entry Point for Profiler
+    """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor for Holoclean
+        :param kwargs: arguments for HoloClean
+        """
+
+        # Initialize default execution arguments
+        arg_defaults = {}
+        for arg, opts in arguments:
+            if 'directory' in arg[0]:
+                arg_defaults['directory'] = opts['default']
+            else:
+                arg_defaults[opts['dest']] = opts['default']
+
+        # Initialize default execution flags
+        for arg, opts in flags:
+            arg_defaults[opts['dest']] = opts['default']
+
+        # check env vars
+        for arg, opts in arguments:
+            # if env var is set use that
+            if opts["metavar"] and opts["metavar"] in os.environ.keys():
+                logging.debug(
+                    "Overriding {} with env varible {} set to {}".format(
+                        opts['dest'],
+                        opts["metavar"],
+                        os.environ[opts["metavar"]])
+                )
+                arg_defaults[opts['dest']] = os.environ[opts["metavar"]]
+
+        # Override defaults with manual flags
+        for key in kwargs:
+            arg_defaults[key] = kwargs[key]
+
+        # Initialize additional arguments
+        for (arg, default) in arg_defaults.items():
+            setattr(self, arg, kwargs.get(arg, default))
+
+        # Init empty session collection
+        self.session = Session(arg_defaults)
+
+
+class Session(object):
+
+    def __init__(self, env, name="session"):
+        """
+        Constructor for Profiler session
+        :param env: Profiler environment
+        :param name: Name for the Profiler session
+        """
+        # use DEBUG logging level if verbose enabled
+        if env['verbose']:
+            root_logger.setLevel(logging.DEBUG)
+            gensim_logger.setLevel(logging.DEBUG)
+
+        logging.debug('initiating session with parameters: %s', env)
+
+        # Initialize random seeds.
+        random.seed(env['seed'])
+        #torch.manual_seed(env['seed'])
+        np.random.seed(seed=env['seed'])
+
+        # Initialize members
+        self.name = name
+        self.env = env
+        self.ds = Dataset(name, env)
+        self.trans_engine = TransformEngine(env, self.ds)
+        self.profile_engine = ProfileEngine(env, self.ds)
+        self.eval_engine = EvalEngine(env, self.ds)
+
+
+    def load_data(self, name, src, fpath='', df=None, **kwargs):
+        """
+        load_data takes the filepath to a CSV file to load as the initial dataset.
+        :param name: (str) name to initialize dataset with.
+        :param fpath: (str) filepath to CSV file.
+        :param kwargs: 'na_values', 'header', 'dropcol', 'encoding', 'nan' (representation for null values)
+        """
+        status, load_time = self.ds.load_data(name, src, fpath, df)
+        logging.info(status)
+        logging.debug('Time to load dataset: %.2f secs', load_time)
+
+
+
     def __init__(self, use_db=True, db='profiler', ID="", host='localhost',
                  user="profileruser", password="abcd1234", port=5432):
+
+
         '''
         constructor for profiler, create a database or connect to database if existed
         create a data engine object

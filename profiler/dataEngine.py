@@ -126,7 +126,7 @@ class DataEngine(object):
                 continue
             # test if it is category with few types
             if self.df.iloc[:, i].unique().shape[0] >= min_cate and self.param['use_embedding']:
-                types[self.field[i]] = "embeddable_categorical"
+                types[self.field[i]] = "textual"
                 continue
             self.df[self.field[i]] = self.df[self.field[i]].astype('str')
             types[self.field[i]] = "categorical"
@@ -235,7 +235,7 @@ class DataEngine(object):
     HELPER METHODS FOR CREATING LOCALLY-TRAINED WORD EMBEDDINGS
     '''
     def get_embedded_columns(self):
-        return [f for f in self.field if self.dtypes[f] == EMBEDDABLE]
+        return [f for f in self.field if self.dtypes[f] == TEXT]
 
     def get_embedding_source(self, embedding_type="attribute"):
         '''
