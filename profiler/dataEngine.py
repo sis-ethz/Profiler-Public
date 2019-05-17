@@ -1,6 +1,6 @@
 import pandas as pd
 from tqdm import trange, tqdm
-from profiler.wordembedding import Embedding
+from profiler.embedding import Embedding
 from profiler.globalvar import *
 import numpy as np
 import json
