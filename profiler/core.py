@@ -2,6 +2,7 @@ from profiler.utility import GlobalTimer
 from profiler.dataset import Dataset
 from profiler.transformer import TransformEngine
 from profiler.embedding import EmbeddingEngine
+from profiler.learner import StructureLearner
 from profiler.globalvar import *
 import numpy as np
 import logging, os, random
@@ -48,7 +49,7 @@ arguments = [
     (('-w', '--workers'),
      {'metavar': 'WORKERS',
       'dest': 'workers',
-      'default': 20,
+      'default': 1,
       'type': int,
       'help': 'How many workers to use for parallel execution. If <= 1, then no pool workers are used.'}),
     (('-n', '--null_policy'),
@@ -57,6 +58,12 @@ arguments = [
          'default': NULL_NEQ,
          'type': str,
          'help': 'Policy to handle null. [neq, eq, skip]'}),
+    (('-s', '--seed'),
+        {'metavar': 'SEED',
+         'dest': 'seed',
+         'default': 10,
+         'type': int,
+         'help': 'random seed'}),
 ]
 
 # Flags for Profiler
@@ -143,26 +150,27 @@ class Session(object):
         self.ds = Dataset(name, env)
         self.embed = embed
         self.trans_engine = TransformEngine(env, self.ds)
-        self.profile_engine = ProfileEngine(env, self.ds)
-        self.eval_engine = EvalEngine(env, self.ds)
+        self.struct_engine = StructureLearner(env, self.ds)
+        #self.eval_engine = EvalEngine(env, self.ds)
 
-    def load_data(self, name, src, fpath='', df=None, **kwargs):
+    def load_data(self, name="", src=FILE, fpath='', df=None, **kwargs):
         """
         load_data takes the filepath to a CSV file to load as the initial dataset.
         :param name: (str) name to initialize dataset with.
+        :param src: (str) input source ["file", "df", "db"]
         :param fpath: (str) filepath to CSV file.
         :param kwargs: 'na_values', 'header', 'dropcol', 'encoding', 'nan' (representation for null values)
         """
         self.timer.time_start('Load Data')
-        self.ds.load_data(src, fpath, df, **kwargs)
+        self.ds.load_data(name, src, fpath, df, **kwargs)
         self.timer.time_end('Load Data')
 
     def load_embedding(self, embedding_size=128, embedding_type=ATTRIBUTE_EMBEDDING):
-        self.timer.time_start('Load Data')
+        self.timer.time_start('Load Embedding')
         if not self.embed:
             self.embed = EmbeddingEngine(self.env, self.ds)
         self.embed.train(embedding_size, embedding_type)
-        self.timer.time_end('Load Data')
+        self.timer.time_end('Load Embedding')
 
     def load_training_data(self):
         pass

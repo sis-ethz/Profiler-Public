@@ -30,7 +30,8 @@ class SIF(object):
         self.workers = env['workers']
 
         # compute weights
-        corpus = np.array(map(tokenizer, data))
+        corpus = [tokenizer(row) for row in data]
+
         self.weights = self.compute_weights(corpus)
 
         # train language model
@@ -41,7 +42,7 @@ class SIF(object):
         unique, counts = np.unique(all_words, return_counts=True)
         freq = counts / len(all_words)
         weight = self.a / (self.a + freq)
-        weights = pd.DataFrame(np.hstack[unique, weight], columns=['word', 'weight']).set_index('word', inplace=True)
+        weights = pd.DataFrame(zip(unique, weight), columns=['word', 'weight']).set_index('word')
         # no need to handle null since it will be handled in comparison
         # handle padding
         # weights.loc['_padding_'] = np.zeros((self.dim,))
@@ -66,7 +67,7 @@ class LocalFasttextModel(object):
         self.model = FastText(size=dim, window=3, min_count=1, batch_words=100)
         self.model.build_vocab(sentences=corpus)
         self.model.train(sentences=corpus, total_examples=self.model.corpus_count, epochs=self.model.epochs,
-                         workers=env['workers'], seed=env['seed'])
+                         seed=env['seed'])
         self.dim = dim
 
     def get_word_vector(self, word):
@@ -97,8 +98,15 @@ class EmbeddingEngine(object):
         self.embedding_type = embedding_type
         if self.embedding_type == ATTRIBUTE_EMBEDDING:
             self.models = {}
-            for attr in self.ds.df:
-                self.models[attr] = SIF(self.env, self.ds.df[attr], dim=embedding_size, tokenizer=tokenizer)
+            to_embed = self.ds.to_embed()
+            if self.env['workers'] > 1:
+                pool = ThreadPoolExecutor(self.env['workers'])
+                for i, model in enumerate(pool.map(lambda x: SIF(self.env, self.ds.df[x], dim=embedding_size,
+                                                                 tokenizer=tokenizer), to_embed)):
+                    self.models[to_embed[i]] = model
+            else:
+                for attr in to_embed:
+                    self.models[attr] = SIF(self.env, self.ds.df[attr], dim=embedding_size, tokenizer=tokenizer)
         elif self.embedding_type == ONE_HOT_EMBEDDING:
             raise Exception("NOT IMPLEMENTED")
             # self.models = [OneHotEncoderModel(self, source_data)]
@@ -106,7 +114,7 @@ class EmbeddingEngine(object):
             raise Exception("NOT IMPLEMENTED")
         else:
             raise Exception("[%s] is not a valid embedding type!" % embedding_type)
-        self.dim = self.models[0].dim
+        #self.dim = self.models[0].dim
 
     def get_word_vector(self, word, attr=None):
         if word == self.ds.nan:

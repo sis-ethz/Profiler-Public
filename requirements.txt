@@ -13,3 +13,4 @@ scikit-learn>=0.20.0
 ipykernel
 seaborn
 gensim
+networkx

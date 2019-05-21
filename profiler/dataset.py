@@ -1,17 +1,10 @@
 from profiler.globalvar import *
-from enum import Enum
 import pandas as pd
 import numpy as np
 import logging, json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-class Source(Enum):
-    FILE = 1
-    DF   = 2
-    DB   = 3
 
 
 class Dataset(object):
@@ -25,7 +18,7 @@ class Dataset(object):
         self.original_dtypes = None
         self.dtypes = None
 
-    def load_data(self, src, fpath, df, **kwargs):
+    def load_data(self, name, src, fpath, df, **kwargs):
         param = {
             'na_values': {"?", "", "None", "none", "nan", "NaN", "unknown"},
             'sep': ',',
@@ -38,8 +31,9 @@ class Dataset(object):
         }
         param.update(kwargs)
         setattr(self, 'null', param['null'])
+        setattr(self, 'name', name)
 
-        if src == Source.FILE:
+        if src == FILE:
             if fpath is None:
                 raise Exception("ERROR while loading table. File path for CSV file name expected. Please provide <fpath> param.")
             self.df = pd.read_csv(fpath, encoding=param['encoding'], header=param['header'], sep=param['sep'],
@@ -50,11 +44,11 @@ class Dataset(object):
                     logging.warning("Dropping the following null column from the dataset: '%s'", attr)
                     self.df.drop(labels=[attr], axis=1, inplace=True)
                     continue
-        elif src == Source.DF:
+        elif src == DF:
             if df is None:
                 raise Exception("ERROR while loading table. Dataframe expected. Please provide <df> param.")
             self.df = df
-        elif src == Source.DB:
+        elif src == DB:
             raise Exception("Not Implemented")
 
         if param['normalize']:
@@ -71,15 +65,15 @@ class Dataset(object):
         # drop empty columns
         self.df.dropna(axis=1, how='all', inplace=True)
 
-        for i, c in enumerate(self.df.dtypes):
+        for i, t in enumerate(self.df.dtypes):
             # replace all nans non-numeric data to self.nan, strip whitespaces, and convert to lowercase
-            if np.issubdtype(c, np.number):
+            if np.issubdtype(t, np.number):
                 continue
-            self.df[c] = self.df.iloc[:, i].replace(np.nan, self.null, regex=True).str.strip().str.lower()
+            self.df.iloc[:, i] = self.df.iloc[:, i].replace(np.nan, self.null, regex=True).str.strip().str.lower()
 
     def infer_column_types(self, min_cate):
         types = {}
-        self.field = list(self.df.columns)
+        self.field = self.df.columns.values
         for i, c in enumerate(self.df.dtypes):
             # test if it is numeric
             if np.issubdtype(c, np.number):
@@ -127,3 +121,6 @@ class Dataset(object):
             else:
                 for name, t in zip(names, types):
                     update(name, t)
+
+    def to_embed(self):
+        return [attr for attr in self.dtypes if self.dtypes[attr] == TEXT]

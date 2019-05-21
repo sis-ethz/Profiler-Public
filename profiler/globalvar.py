@@ -1,3 +1,8 @@
+# source type
+FILE = "file"
+DF   = "df"
+DB   = "db"
+
 # embedding types
 PRETRAINED_EMBEDDING = "pre-trained",
 ONE_HOT_EMBEDDING    = "one-hot"
