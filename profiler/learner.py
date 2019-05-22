@@ -44,7 +44,7 @@ class StructureLearner(object):
         G = nx.Graph()
         for attr in inv_cov:
             G.add_node(attr)
-            neighbors = [attr]* columns[inv_cov[attr] > self.param['zero']]
+            neighbors = columns[inv_cov[attr] > self.param['zero']]
             G.add_edges_from(zip(len(neighbors)*[attr], neighbors))
         return G
 

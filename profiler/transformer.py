@@ -14,6 +14,7 @@ class TransformEngine(object):
         # self.right_prefix = 'right_'
 
     def create_training_data(self):
+        
         pass
 
     def create_pair_data(self, multiplier=10):
@@ -26,7 +27,7 @@ class TransformEngine(object):
         left = [base_table] * multiplier
         right = [base_table.iloc[list(range(i+1, base_table.shape[0])) + list(range(i+1)), :].reset_index(
             drop=True) for i in range(multiplier)]
-        left = pd.concat(left)
-        right = pd.concat(right)
+        left = pd.concat(left).reset_index(drop=True)
+        right = pd.concat(right).reset_index(drop=True)
         return left, right
         # TODO: show how many data points are enough, i.e. how to set multiplier
