@@ -4,5 +4,5 @@ export PYTHONPATH="$PYTHONPATH:$PROFILERHOME"
 export PATH="$PATH:$PROFILERHOME"
 echo $PATH
 echo "Environment variables set!"
-jupyter notebook --no-browser
-#jupyter notebook
+#jupyter notebook --no-browser
+jupyter notebook

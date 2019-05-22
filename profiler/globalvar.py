@@ -20,3 +20,9 @@ DATA_TYPES  = [NUMERIC, CATEGORICAL, TEXT]
 NULL_NEQ = "neq"
 NULL_EQ  = "eq"
 SKIP     = "skip"
+
+# operators
+EQ = "equal"
+NEQ = "notequal"
+GT = "greater_than"
+LT = "less_than"

@@ -64,11 +64,22 @@ arguments = [
          'default': 10,
          'type': int,
          'help': 'random seed'}),
+    (('-t', '--tol'),
+        {'metavar': 'TOL',
+         'dest': 'tol',
+         'default': 0.01,
+         'type': float,
+         'help': "tolerance for being 'same'"}),
 ]
 
 # Flags for Profiler
 flags = [
     (tuple(['--usedb']),
+        {'default': False,
+         'dest': 'verbose',
+         'action': 'store_true',
+         'help': 'verbose'}),
+    (tuple(['--embedtxt']),
         {'default': False,
          'dest': 'verbose',
          'action': 'store_true',
