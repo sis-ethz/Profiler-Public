@@ -130,9 +130,11 @@ class Dataset(object):
         operators = {}
         for attr in self.dtypes:
             if self.dtypes[attr] == NUMERIC:
-                operators[attr] = [EQ, NEQ, GT, LT]
+                # operators[attr] = [EQ, NEQ, GT, LT]
+                operators[attr] = [EQ, GT, LT]
             else:
-                operators[attr] = [EQ, NEQ]
+                # operators[attr] = [EQ, NEQ]
+                operators[attr] = [EQ]
         self.operators = operators
         logger.info("inferred operators of attributes: {}".format(operators))
         logger.info("(possible operators: %s)" % (", ".join(OPERATORS)))

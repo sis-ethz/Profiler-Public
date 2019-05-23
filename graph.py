@@ -20,7 +20,7 @@ class Graph(object):
         self.num_nodes += 1
         self.nodes[name] = self.num_nodes
         self.idx_to_name[self.num_nodes] = name
-        logger.info('created node %s' % name)
+        logger.debug('created node %s' % name)
         return self.num_nodes
 
     def add_nodes(self, names):
@@ -53,7 +53,7 @@ class Graph(object):
 
     def add_directed_edge_from_nodes(self, idx1, idx2):
         self.edges.loc[idx1, idx2] = 1
-        logger.info('added directed edge {} -> {}'.format(self.idx_to_name[idx1], self.idx_to_name[idx2]))
+        logger.debug('added directed edge {} -> {}'.format(self.idx_to_name[idx1], self.idx_to_name[idx2]))
 
     def exist_undirected_edge(self, idx1, idx2):
         if idx1 < idx2:
@@ -65,21 +65,22 @@ class Graph(object):
         return self.edges.loc[idx1, idx2] == 1
 
     def print_edges(self):
-        print(self.edges)
+        row, col = np.where(np.asanyarray(~np.isnan(self.edges)))
+        for r, c in zip(row, col):
+            print((self.edges.index[r], self.edges.columns[c]))
 
     def delete_node(self, idx):
         del self.nodes[self.idx_to_name[idx]]
         self.edges[idx] = []
         self.edges.loc[idx, :] = []
-        self.num_nodes -= 1
 
     def get_neighbors(self, idx):
         return np.unique(np.concatenate([self.get_parents(idx), self.get_children(idx)]))
 
-    def get_parents(self, idx):
-        return self.edges.columns.values[self.edges.loc[idx, :] == 1]
-
     def get_children(self, idx):
+        return self.edges.index.values[self.edges.loc[idx, :] == 1]
+
+    def get_parents(self, idx):
         return self.edges.columns.values[self.edges[idx] == 1]
 
     
@@ -174,15 +175,15 @@ def eliminate_node(G, ordering, v):
     # for each pair of neighbors w, x of v, ordering[w] > ordering[v] and ordering[x] > ordering[v]
     nbr = sorted(G.get_neighbors(v), key=lambda x: ordering.loc[x, 'order'], reverse=True)
     for j in nbr[:-1]:
-        if j <= ordering.loc[v,'order']:
-            break
-        for k in nbr[j:]:
-            if k <= ordering.loc[v,'order']:
+        if j <= ordering.loc[v, 'order']:
+            continue
+        for k in nbr[j+1:]:
+            if k <= ordering.loc[v, 'order']:
                 continue
             # add edges for all pair of neighbors
             H.add_undirected_edge_from_nodes(nbr[j], nbr[k])
             # eliminate the node
-            H.delete_node(v)
+            #H.delete_node(v)
     return H, nbr[-1]
 
 
@@ -198,7 +199,7 @@ def perm_to_tree_decomp(G, ordering, pi):
     # vj is v1's neighbor with smallest order
     bags, T_prime = perm_to_tree_decomp(H, ordering.iloc[1:, :], pi)
     # construct a bag for neighbor of v1
-    bags[v1] = frozenset(G.get_neighbors(v1))
+    bags[vj] = frozenset(G.get_neighbors(v1))
     # nodes = G.nodes
     T.edges = T_prime.edges
     T.add_nodes(list(G.nodes.keys()))

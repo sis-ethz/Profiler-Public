@@ -51,13 +51,16 @@ class StructureLearner(object):
             if i == 0:
                 continue
             columns = inv_cov.columns.values[:i]
-            neighbors = columns[inv_cov.loc[attr, columns] > self.env['tol']]
+            columns = np.array([c for c in columns if attr.split('_')[0] not in c])
+            neighbors = columns[(inv_cov.loc[attr, columns]).abs() > self.env['tol']]
             G.add_undirected_edges([attr]*len(neighbors), neighbors)
         return G
 
     def tree_decompos(self):
         ordering = get_min_degree_ordering(self.G)
+        self.ordering = ordering
         bags, T = perm_to_tree_decomp(self.G, ordering, ordering)
+        self.width = max([len(bags[i]) for i in bags]) - 1
         return bags, T
 
 
