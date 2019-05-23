@@ -74,16 +74,21 @@ arguments = [
 
 # Flags for Profiler
 flags = [
+    (tuple(['--verbose']),
+        {'default': False,
+         'dest': 'verbose',
+         'action': 'store_true',
+         'help': 'use DEBUG logging level if verbose enabled'}),
     (tuple(['--usedb']),
         {'default': False,
-         'dest': 'verbose',
+         'dest': 'usedb',
          'action': 'store_true',
-         'help': 'verbose'}),
+         'help': 'use database engine'}),
     (tuple(['--embedtxt']),
         {'default': False,
-         'dest': 'verbose',
+         'dest': 'embedtxt',
          'action': 'store_true',
-         'help': 'verbose'}),
+         'help': 'use language embedding for textual data'}),
 ]
 
 
@@ -136,7 +141,7 @@ class Profiler(object):
 
 class Session(object):
 
-    def __init__(self, env, name="session", embed=None):
+    def __init__(self, env, name="session"):
         """
         Constructor for Profiler session
         :param env: Profiler environment
@@ -155,11 +160,12 @@ class Session(object):
         np.random.seed(seed=env['seed'])
 
         # Initialize members
+        self.embed = None
+        self.training_data = None
         self.name = name
         self.env = env
         self.timer = GlobalTimer()
         self.ds = Dataset(name, env)
-        self.embed = embed
         self.trans_engine = TransformEngine(env, self.ds)
         self.struct_engine = StructureLearner(env, self.ds)
         #self.eval_engine = EvalEngine(env, self.ds)
@@ -176,6 +182,12 @@ class Session(object):
         self.ds.load_data(name, src, fpath, df, **kwargs)
         self.timer.time_end('Load Data')
 
+    def change_operators(self, **kwargs):
+        self.ds.change_operators(**kwargs)
+
+    def change_dtypes(self, **kwargs):
+        self.ds.change_dtypes(**kwargs)
+
     def load_embedding(self, embedding_size=128, embedding_type=ATTRIBUTE_EMBEDDING):
         self.timer.time_start('Load Embedding')
         if not self.embed:
@@ -183,8 +195,19 @@ class Session(object):
         self.embed.train(embedding_size, embedding_type)
         self.timer.time_end('Load Embedding')
 
-    def load_training_data(self):
-        pass
+    def load_training_data(self, multiplier=15):
+        self.timer.time_start('Create Training Data')
+        self.training_data = self.trans_engine.create_training_data(multiplier=multiplier, embed=self.embed)
+        self.timer.time_end('Create Training Data')
+
+    def learn_structure(self, **kwargs):
+        self.timer.time_start('Recover Moral Graph')
+        inv_cov = self.struct_engine.recover_moral(self.training_data, **kwargs)
+        self.timer.time_end('Recover Moral Graph')
+        self.timer.time_start('Recover DAG')
+        self.struct_engine.recover_dag(inv_cov)
+        self.timer.time_end('Recover DAG')
+
 
     #
     #

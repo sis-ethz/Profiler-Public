@@ -26,3 +26,11 @@ EQ = "equal"
 NEQ = "notequal"
 GT = "greater_than"
 LT = "less_than"
+OPERATORS = [EQ, NEQ, GT, LT]
+
+# node types
+JOIN = "join"
+INTRO = "introduce"
+FORGET = "forget"
+LEAF = "leaf"
+NODE_TYPES = [JOIN, INTRO, FORGET, LEAF]

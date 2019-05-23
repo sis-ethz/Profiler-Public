@@ -1,4 +1,5 @@
 from profiler.globalvar import *
+from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import numpy as np
 
@@ -25,8 +26,8 @@ def compute_differences_text(env, attr, operators, left, right, embed):
     if embed is None:
         raise Exception('ERROR while creating training data. Embedding model is none')
     df = pd.DataFrame()
-    diff = 1 - np.sum(left * right, axis=1) / \
-           (np.sqrt(np.sum(np.square(left), axis=1)) * np.sqrt(np.sum(np.square(right), axis=1)))
+    diff = 1 - np.sum(left * right, axis=1) / (np.sqrt(np.sum(np.square(left), axis=1)) *
+                                               np.sqrt(np.sum(np.square(right), axis=1)))
     df["%s_eq" % attr] = (diff / np.nanmax(diff)) <= env['tol']
     if NEQ in operators:
         df["%s_neq" % attr] = 1 - df["%s_eq" % attr]
@@ -38,10 +39,6 @@ def compute_differences_categorical(attr, operators, left, right):
     df["%s_eq" % attr] = np.equal(left, right)*1
     if NEQ in operators:
         df["%s_neq" % attr] = 1 - df["%s_eq"%attr]
-    if GT in operators:
-        df["%s_gt" % attr] = (left > right)*1
-    if LT in operators:
-        df["%s_lt" % attr] = (left < right)*1
     return df
 
 
@@ -70,13 +67,26 @@ class TransformEngine(object):
         # self.left_prefix = 'left_'
         # self.right_prefix = 'right_'
 
+    @staticmethod
+    def check_singular(df):
+        # check singular
+        to_drop = [col for col in df if len(df[col].unique()) == 1]
+        if len(to_drop) != 0:
+            df.drop(to_drop, axis=1, inplace=True)
+        return df
+
     def create_training_data(self, multiplier=10, embed=None):
         self.embed = embed
         left, right = self.create_pair_data(multiplier=multiplier)
         if self.env['workers'] < 1:
-            for attr in self.ds.field:
-                compute_differences(attr, self.ds.dtypes[attr], self.env, self.ds.operators[attr],
-                                    left[attr], right[attr], self.embed)
+            data = [compute_differences(attr, self.ds.dtypes[attr], self.env, self.ds.operators[attr], left[attr],
+                                        right[attr], self.embed) for attr in self.ds.field]
+        else:
+            pool = ThreadPoolExecutor(self.env['workers'])
+            data = list(pool.map(lambda attr: compute_differences(attr, self.ds.dtypes[attr], self.env,
+                                                                  self.ds.operators[attr], left[attr],
+                                                                  right[attr], self.embed), self.ds.field))
+        return TransformEngine.check_singular(pd.concat(data, axis=1))
 
     def create_pair_data(self, multiplier):
         # TODO: allow different null policy

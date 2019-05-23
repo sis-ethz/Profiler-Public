@@ -17,6 +17,7 @@ class Dataset(object):
         self.field = []
         self.original_dtypes = None
         self.dtypes = None
+        self.operators = None
 
     def load_data(self, name, src, fpath, df, **kwargs):
         param = {
@@ -55,6 +56,7 @@ class Dataset(object):
             self.normalize()
 
         self.infer_column_types(param['min_categories_for_embedding'])
+        self.infer_operators()
 
     def normalize(self):
         """
@@ -121,6 +123,45 @@ class Dataset(object):
             else:
                 for name, t in zip(names, types):
                     update(name, t)
+        self.infer_operators()
+        logger.info("updated inferred operators of attributes: {}".format(self.operators))
+
+    def infer_operators(self):
+        operators = {}
+        for attr in self.dtypes:
+            if self.dtypes[attr] == NUMERIC:
+                operators[attr] = [EQ, NEQ, GT, LT]
+            else:
+                operators[attr] = [EQ, NEQ]
+        self.operators = operators
+        logger.info("inferred operators of attributes: {}".format(operators))
+        logger.info("(possible operators: %s)" % (", ".join(OPERATORS)))
+
+    def change_operators(self, names, operators):
+
+        def validate_op(x):
+            if isinstance(x, str):
+                x = [x]
+            for op in x:
+                if op not in OPERATORS:
+                    raise ValueError("Invalid Operator: %s" % op)
+            return x
+
+        def validate_name(n):
+            if n not in self.operators:
+                raise ValueError("Invalid Attribute Name")
+            return n
+
+        def update(n, op):
+            self.operators[validate_name(n)] = validate_op(op)
+            logger.info("updated operators of {} to {}".format(n, op))
+
+        if isinstance(names, str):
+            update(names, operators)
+        else:
+            assert(len(names) == len(operators))
+            for name, ops in zip(names, operators):
+                update(name, ops)
 
     def to_embed(self):
         return [attr for attr in self.dtypes if self.dtypes[attr] == TEXT]
