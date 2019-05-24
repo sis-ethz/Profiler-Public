@@ -204,9 +204,9 @@ class Session(object):
         self.timer.time_start('Recover Moral Graph')
         inv_cov = self.struct_engine.recover_moral(self.training_data, **kwargs)
         self.timer.time_end('Recover Moral Graph')
-        self.timer.time_start('Recover DAG')
-        self.struct_engine.recover_dag(inv_cov)
-        self.timer.time_end('Recover DAG')
+        # self.timer.time_start('Recover DAG')
+        # self.struct_engine.recover_dag(inv_cov)
+        # self.timer.time_end('Recover DAG')
 
 
     #
