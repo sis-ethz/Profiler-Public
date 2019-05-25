@@ -1,7 +1,9 @@
+from heapq import heappush, heappop, heapify
 from profiler.globalvar import *
 import pandas as pd
 import numpy as np
-import logging, copy
+import logging
+import itertools
 
 
 logging.basicConfig()
@@ -13,7 +15,7 @@ class Graph(object):
     
     def __init__(self):
         self.idx_to_name = {}
-        self.largest_idx = 0
+        self.largest_idx = -1
         self.edges = pd.DataFrame()
 
     def add_node(self, name, idx=None):
@@ -141,35 +143,10 @@ class DirectedGraph(Graph):
     def to_undirected(self):
         G = UndirectedGraph()
         G.add_nodes_with_idx(G.idx_to_name.items())
-        G.edges = pd.DataFrame
+        G.edges = pd.DataFrame()
         for e in self.get_edges():
             G.add_undirected_edge(e[0], e[1])
         return G
-
-    def get_undirected_connected_components(self):
-
-        def recursive_add_children(G, start):
-            for c in self.get_children(start):
-                G.add_node(self.idx_to_name[c], idx=c)
-                G.add_undirected_edge(start, c)
-                G = recursive_add_children(G, c)
-            return G
-
-        roots = self.in_degrees.index.values[self.in_degrees['degree'] == 0]
-        # only one connected component, return undirected graph directly
-        if len(roots) == 1:
-            return [self.to_undirected()]
-        # more than one components, return connected subgraphs
-        Gs = []
-        for start in roots:
-            logger.debug("root: [%d]"%start)
-            G = UndirectedGraph()
-            G.add_node(self.idx_to_name[start], idx=start)
-            G = recursive_add_children(G, start)
-            if len(G.idx_to_name) == 1:
-                continue
-            Gs.append(G)
-        return Gs
 
 
 class UndirectedGraph(Graph):
@@ -219,6 +196,45 @@ class UndirectedGraph(Graph):
         G.edges = self.edges
         return G
 
+    def get_undirected_connected_components(self):
+
+        visited = np.zeros((self.largest_idx+1,))
+        Gs = []
+
+        def recursive_add_children(G, start):
+            for c in self.get_neighbors(start):
+                if visited[c] == 0:
+                    G.add_node(self.idx_to_name[c], idx=c)
+                    visited[c] = 1
+                    G = recursive_add_children(G, c)
+            return G
+
+        def get_component(start):
+            G = UndirectedGraph()
+            # add nodes
+            G.add_node(self.idx_to_name[start], idx=start)
+            visited[start] = 1
+            G = recursive_add_children(G, start)
+            nodes = list(G.idx_to_name.keys())
+            # extract edge
+            G.edges = self.edges.loc[nodes, nodes]
+            G.degrees = self.degrees.loc[nodes]
+            return G
+
+        # pick a random node as start
+        to_visit = np.where(visited == 0)[0]
+        while to_visit.shape[0] > 0:
+            if to_visit[0] not in self.idx_to_name:
+                visited[to_visit[0]] = 1
+                to_visit = to_visit[1:]
+                continue
+            G = get_component(to_visit[0])
+            if len(G.idx_to_name) > 1:
+                Gs.append(G)
+            to_visit = np.where(visited == 0)[0]
+
+        return Gs
+
 
 class Tree(DirectedGraph):
 
@@ -235,63 +251,206 @@ class Tree(DirectedGraph):
         self.root = idx
 
 
-def get_min_degree_ordering(G):
-    # sort degree in ascending order
-    ordering = G.degrees.sort_values(by='degree')
-    ordering['order'] = range(ordering.shape[0])
-    return ordering
+class MinDegreeHeuristic:
+    """ Implements the Minimum Degree heuristic.
+
+    The heuristic chooses the nodes according to their degree
+    (number of neighbours), i.e., first the node with the lowest degree is
+    chosen, then the graph is updated and the corresponding node is
+    removed. Next, a new node with the lowest degree is chosen, and so on.
+
+    Copyright (C) 2004-2019, NetworkX Developers
+    Aric Hagberg <hagberg@lanl.gov>
+    Dan Schult <dschult@colgate.edu>
+    Pieter Swart <swart@lanl.gov>
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+      * Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+
+      * Redistributions in binary form must reproduce the above
+        copyright notice, this list of conditions and the following
+        disclaimer in the documentation and/or other materials provided
+        with the distribution.
+
+      * Neither the name of the NetworkX Developers nor the names of its
+        contributors may be used to endorse or promote products derived
+        from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    """
+    def __init__(self, graph):
+        self._graph = graph
+
+        # nodes that have to be updated in the heap before each iteration
+        self._update_nodes = []
+
+        self._degreeq = []  # a heapq with 2-tuples (degree,node)
+
+        # build heap with initial degrees
+        for n in graph:
+            self._degreeq.append((len(graph[n]), n))
+        heapify(self._degreeq)
+
+    def best_node(self, graph):
+        # update nodes in self._update_nodes
+        for n in self._update_nodes:
+            # insert changed degrees into degreeq
+            heappush(self._degreeq, (len(graph[n]), n))
+
+        # get the next valid (minimum degree) node
+        while self._degreeq:
+            (min_degree, elim_node) = heappop(self._degreeq)
+            if elim_node not in graph or len(graph[elim_node]) != min_degree:
+                # outdated entry in degreeq
+                continue
+            elif min_degree == len(graph) - 1:
+                # fully connected: abort condition
+                return None
+
+            # remember to update nodes in the heap before getting the next node
+            self._update_nodes = graph[elim_node]
+            return elim_node
+
+        # the heap is empty: abort
+        return None
 
 
-def fill_in_graph(G, ordering, v):
-    H = copy.deepcopy(G)
-    # for each pair of neighbors w, x of v, ordering[w] > ordering[v] and ordering[x] > ordering[v]
-    nbr = sorted(H.get_neighbors(v), key=lambda x: ordering.loc[x, 'order'], reverse=True)
-    for j in nbr[:-1]:
-        for k in nbr[j+1:]:
-            # add edges for all pair of neighbors
-            H.add_undirected_edge(nbr[j], nbr[k])
-    if len(nbr) > 0:
-        return H, nbr[-1]
-    return H
+def treewidth_decomp(G):
+    """ Returns a treewidth decomposition using the passed heuristic.
 
+    Copyright (C) 2004-2019, NetworkX Developers
+    Aric Hagberg <hagberg@lanl.gov>
+    Dan Schult <dschult@colgate.edu>
+    Pieter Swart <swart@lanl.gov>
+    All rights reserved.
 
-def eliminate_node(G, v):
-    H = copy.deepcopy(G)
-    # eliminate the node
-    H.delete_node(v)
-    return H
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
 
+      * Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
 
-def perm_to_tree_decomp(G, ordering):
-    v1 = ordering.index.values[0]
-    logger.debug("\n\nv1: %s"%v1)
-    T = Tree()
-    if ordering.shape[0] == 1:
-        # return decomp with one bag
-        bag = {v1: frozenset([v1])}
-        logger.debug("return subtree with bag for v1: {}".format(bag))
-        T.add_node(v1)
-        return bag, T
-    logger.debug("eliminated v1: %s"%v1)
-    H = eliminate_node(G, v1)
-    bags, T_prime = perm_to_tree_decomp(H, ordering.iloc[1:, :])
-    # construct a bag for neighbor of v1 and find vj -- v1's neighbor with smallest order
-    vj = None
-    bags[v1] = frozenset(np.concatenate([G.get_neighbors(v1), [v1]]))
-    for nbr in ordering.iloc[1:, :].index.values:
-        if nbr in bags[v1]:
-            vj = nbr
-    logger.debug("bag for {}: {}".format(v1, bags[v1]))
-    # nodes = G.nodes
-    T.edges = T_prime.edges
-    T.in_degrees = T_prime.in_degrees
-    T.out_degrees = T_prime.out_degrees
-    T.add_nodes_with_idx(G.idx_to_name.items())
-    # union edges in T_prime with {v1,vj}
-    if vj is not None:
-        T.add_undirected_edge(v1, vj)
-        logger.debug("added v1 %s - vj %s"%(v1, vj))
-    return bags, T
+      * Redistributions in binary form must reproduce the above
+        copyright notice, this list of conditions and the following
+        disclaimer in the documentation and/or other materials provided
+        with the distribution.
+
+      * Neither the name of the NetworkX Developers nor the names of its
+        contributors may be used to endorse or promote products derived
+        from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Parameters
+    ----------
+    G : NetworkX graph
+    heuristic : heuristic function
+
+    Returns
+    -------
+    Treewidth decomposition : (int, Graph) tuple
+        2-tuple with treewidth and the corresponding decomposed tree.
+    """
+
+    # make dict-of-sets structure
+    graph = {n: set(G.get_neighbors(n)) - set([n]) for n in G.idx_to_name.keys()}
+    min_degree = MinDegreeHeuristic(graph)
+
+    # stack containing nodes and neighbors in the order from the heuristic
+    node_stack = []
+
+    # get first node from heuristic
+    elim_node = min_degree.best_node(graph)
+    while elim_node is not None:
+        # connect all neighbours with each other
+        nbrs = graph[elim_node]
+        for u, v in itertools.permutations(nbrs, 2):
+            if v not in graph[u]:
+                graph[u].add(v)
+
+        # push node and its current neighbors on stack
+        node_stack.append((elim_node, nbrs))
+
+        # remove node from graph
+        for u in graph[elim_node]:
+            graph[u].remove(elim_node)
+
+        del graph[elim_node]
+        elim_node =  min_degree.best_node(graph)
+
+    # the abort condition is met; put all remaining nodes into one bag
+    decomp = Tree()
+    first_bag = frozenset(graph.keys())
+    first_bag_idx = decomp.add_node(first_bag)
+
+    treewidth = len(first_bag) - 1
+
+    while node_stack:
+        # get node and its neighbors from the stack
+        (curr_node, nbrs) = node_stack.pop()
+
+        # find a bag all neighbors are in
+        old_bag = None
+        for bag in decomp.idx_to_name.values():
+            if nbrs <= bag:
+                old_bag = bag
+                break
+
+        if old_bag is None:
+            # no old_bag was found: just connect to the first_bag
+            old_bag = first_bag
+
+        # create new node for decomposition
+        nbrs.add(curr_node)
+        new_bag = frozenset(nbrs)
+
+        # update treewidth
+        treewidth = max(treewidth, len(new_bag) - 1)
+
+        # add edge to decomposition (implicitly also adds the new node)
+        old_bag_idx = -1
+        new_bag_idx = -1
+        for idx, s in decomp.idx_to_name.items():
+            if s == old_bag:
+                old_bag_idx = idx
+            elif s == new_bag:
+                new_bag_idx = idx
+
+        if old_bag_idx == -1:
+            old_bag_idx = decomp.add_node(old_bag)
+        if new_bag_idx == -1:
+            new_bag_idx = decomp.add_node(new_bag)
+        decomp.add_undirected_edge(old_bag_idx, new_bag_idx)
+        decomp.width = treewidth
+
+    return decomp
 
 
 def add_forget(T, current, to_forget):
@@ -407,7 +566,7 @@ def nice_tree_decompose(T, node):
                 T.add_directed_edge(current, cm_idx)
                 # from common add forget nodes
                 to_forget = list(s_child - common)[:-1]
-                T, current = add_forget(T, common, to_forget)
+                T, current = add_forget(T, cm_idx, to_forget)
                 # link to the child
                 T.add_directed_edge(current, nbr[0])
                 # recursive call to child
@@ -426,3 +585,63 @@ def nice_tree_decompose(T, node):
             T, current = add_intro(T, node, to_intro)
             T.node_types[current] = LEAF
     return T
+
+"""
+def get_min_degree_ordering(G):
+    # sort degree in ascending order
+    ordering = G.degrees.sort_values(by='degree')
+    ordering['order'] = range(ordering.shape[0])
+    return ordering
+
+
+def fill_in_graph(G, ordering, v):
+    H = copy.deepcopy(G)
+    # for each pair of neighbors w, x of v, ordering[w] > ordering[v] and ordering[x] > ordering[v]
+    nbr = sorted(H.get_neighbors(v), key=lambda x: ordering.loc[x, 'order'], reverse=True)
+    for j in nbr[:-1]:
+        for k in nbr[j+1:]:
+            # add edges for all pair of neighbors
+            H.add_undirected_edge(nbr[j], nbr[k])
+    if len(nbr) > 0:
+        return H, nbr[-1]
+    return H
+
+
+def eliminate_node(G, v):
+    H = copy.deepcopy(G)
+    # eliminate the node
+    H.delete_node(v)
+    return H
+
+
+def perm_to_tree_decomp(G, ordering):
+    v1 = ordering.index.values[0]
+    logger.debug("\n\nv1: %s"%v1)
+    T = Tree()
+    if ordering.shape[0] == 1:
+        # return decomp with one bag
+        bag = {v1: frozenset([v1])}
+        logger.debug("return subtree with bag for v1: {}".format(bag))
+        T.add_node(v1)
+        return bag, T
+    logger.debug("eliminated v1: %s"%v1)
+    H = eliminate_node(G, v1)
+    bags, T_prime = perm_to_tree_decomp(H, ordering.iloc[1:, :])
+    # construct a bag for neighbor of v1 and find vj -- v1's neighbor with smallest order
+    vj = None
+    bags[v1] = frozenset(np.concatenate([G.get_neighbors(v1), [v1]]))
+    for nbr in ordering.iloc[1:, :].index.values:
+        if nbr in bags[v1]:
+            vj = nbr
+    logger.debug("bag for {}: {}".format(v1, bags[v1]))
+    # nodes = G.nodes
+    T.edges = T_prime.edges
+    T.in_degrees = T_prime.in_degrees
+    T.out_degrees = T_prime.out_degrees
+    T.add_nodes_with_idx(G.idx_to_name.items())
+    # union edges in T_prime with {v1,vj}
+    if vj is not None:
+        T.add_undirected_edge(v1, vj)
+        logger.debug("added v1 %s - vj %s"%(v1, vj))
+    return bags, T
+"""

@@ -7,11 +7,7 @@ logger.setLevel(logging.INFO)
 
 
 def find_all_subsets(S):
-    subsets = []
-    for i in range(1, len(S)+1):
-        subsets += find_subsets(S, i)
-    return subsets
-
+    return [find_subsets(S, i) for i in range(1, len(S)+1)]
 
 def find_subsets(S, m):
     '''

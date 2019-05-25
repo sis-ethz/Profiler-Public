@@ -31,10 +31,9 @@ class StructureLearner(object):
         self.Gs = G.get_undirected_connected_components()
         for G in self.Gs:
             # step 1: tree decomposition
-            TD = self.tree_decompose(G)
+            TD = treewidth_decomp(G)
             # step 2: nice tree decomposition
             NTD = self.nice_tree_decompose(TD)
-
 
     def estimate_inverse_covariance(self, data):
         """
@@ -53,7 +52,7 @@ class StructureLearner(object):
         return inv_cov
 
     def construct_moral_graphs(self, inv_cov):
-        G = DirectedGraph()
+        G = UndirectedGraph()
         self.idx = pd.DataFrame(zip(np.array(G.add_nodes(inv_cov.columns)), inv_cov.columns),
                                 columns=['idx','col']).set_index('col')
         for i, attr in enumerate(inv_cov):
@@ -61,16 +60,8 @@ class StructureLearner(object):
                 continue
             columns = np.array([c for c in inv_cov.columns.values[:i] if attr.split('_')[0] not in c])
             neighbors = columns[(inv_cov.loc[attr, columns]).abs() > self.env['tol']]
-            G.add_directed_edges([self.idx.loc[attr, 'idx']]*len(neighbors), self.idx.loc[neighbors, 'idx'])
+            G.add_undirected_edges([self.idx.loc[attr, 'idx']]*len(neighbors), self.idx.loc[neighbors, 'idx'])
         return G
-
-    def tree_decompose(self, G):
-        ordering = get_min_degree_ordering(G)
-        bags, T = perm_to_tree_decomp(G, ordering)
-        T.width = max([len(bags[i]) for i in bags]) - 1
-        # set bags
-        T.idx_to_name = bags
-        return T
 
     def nice_tree_decompose(self, TD):
         NTD = deepcopy(TD)
@@ -86,5 +77,15 @@ class StructureLearner(object):
         # decompose
         NTD = nice_tree_decompose(NTD, root)
         return NTD
+
+    """
+    def tree_decompose(self, G):
+        # ordering = get_min_degree_ordering(G)
+        # bags, T = perm_to_tree_decomp(G, ordering)
+        # T.width = max([len(bags[i]) for i in bags]) - 1
+        # # set bags
+        # T.idx_to_name = bags
+        return TD
+    """
 
 
