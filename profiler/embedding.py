@@ -18,7 +18,7 @@ def get_cos(vec):
 
 class SIF(object):
 
-    def __init__(self, env, data, dim, tokenizer, a=1e-3):
+    def __init__(self, env, data, dim, tokenizer, a=1e-3, load=False, path='', save=True):
         """
 
         :param corpus:
@@ -29,36 +29,55 @@ class SIF(object):
         self.dim = dim
         self.workers = env['workers']
 
+        if load:
+            # compute weights
+            corpus = [tokenizer(row) for row in data]
+
+            # train language model
+            self.wv = LocalFasttextModel(env, corpus, dim)
+            self.weights, self.wordvecs = self.build_vocab(corpus, wv)
+            if save:
+                self.save_model(path)
+        else:
+            self.weights = pd.read_csv(path+'weight.csv', index_col='word')
+            self.wordvecs = pd.read_csv(path+'vec.csv', index_col='word')
+
+    def build_vocab(self, corpus, wv):
         # compute weights
-        corpus = [tokenizer(row) for row in data]
-
-        self.weights = self.compute_weights(corpus)
-
-        # train language model
-        self.wv = LocalFasttextModel(env, corpus, dim)
-
-    def compute_weights(self, corpus):
         all_words = np.hstack(corpus)
         unique, counts = np.unique(all_words, return_counts=True)
         freq = counts / len(all_words)
         weight = self.a / (self.a + freq)
-        weights = pd.DataFrame(zip(unique, weight), columns=['word', 'weight']).set_index('word')
+        weights = pd.DataFrame(list(zip(unique, weight)), columns=['word', 'weight']).set_index('word')
         # no need to handle null since it will be handled in comparison
         # handle padding
         # weights.loc['_padding_'] = np.zeros((self.dim,))
-        return weights
-
+        
+        # obtain word vector 
+        wordvecs = pd.DataFrame(np.hstack([unique.reshape(-1,1), wv.get_array_vectors(unique)])).set_index(0)
+        wordvecs.index.name = 'word'
+        return weights, wordvecs
+    
+    def save_model(self, path):
+        self.weights.to_csv(path+'weight.csv')
+        self.wordvecs.to_csv(path+'vec.csv')
+    
     def get_weights(self, words):
-        return self.weights.loc[words]
+        return self.weights.loc[words].values
+    
+    def get_wv(self, words):
+        return self.wordvecs.loc[words].values
 
     def get_cell_vector(self, cell):
         if isinstance(cell, str):
-            cell = [cell]
-        return np.matmul(self.get_weights(cell), self.wv.get_array_vectors(cell))/len(cell)
+            cell = self.tokenizer(cell)
+        w = self.get_weights(cell).transpose()
+        v = self.get_wv(cell)
+        return np.matmul(w, v)/np.sum(w)
 
     def get_array_vectors(self, array):
         # TODO: add parallellization option
-        return np.array(map(self.get_cell_vector, array))
+        return np.array(list(map(self.get_cell_vector, array))).squeeze()
 
 
 class LocalFasttextModel(object):
@@ -94,7 +113,7 @@ class EmbeddingEngine(object):
         self.models = None
         self.dim = -1
 
-    def train(self, embedding_size, embedding_type, tokenizer=lambda x: x.split()):
+    def train(self, embedding_size, embedding_type, tokenizer=lambda x: x.split(), path='', save=True, load=False):
         self.embedding_type = embedding_type
         if self.embedding_type == ATTRIBUTE_EMBEDDING:
             self.models = {}
@@ -106,7 +125,8 @@ class EmbeddingEngine(object):
                     self.models[to_embed[i]] = model
             else:
                 for attr in to_embed:
-                    self.models[attr] = SIF(self.env, self.ds.df[attr], dim=embedding_size, tokenizer=tokenizer)
+                    self.models[attr] = SIF(self.env, self.ds.df[attr], dim=embedding_size, tokenizer=tokenizer, 
+                        path=os.path.join(path+attr), load=load, save=save)
         elif self.embedding_type == ONE_HOT_EMBEDDING:
             raise Exception("NOT IMPLEMENTED")
             # self.models = [OneHotEncoderModel(self, source_data)]
