@@ -155,9 +155,6 @@ class EmbeddingEngine(object):
         vec2 = self.get_array_vectors(b[~nan], attr=attr)
         sim = np.zeros(a.shape[0], dtype=float)
         sim[nan] = np.nan
-        # TODO: improve
-        #sim[~nan] = map(get_cos, zip(vec1, vec2))
-        #np.dot(vec1, vec2)/(np.linalg.norm(vec1, axis=0)*np.linalg.norm(vec2, axis=0))
         sim[~nan] = [np.dot(v1, v2)/(np.linalg.norm(v1)*np.linalg.norm(v2)) for v1, v2 in zip(vec1, vec2)]
         return sim
 

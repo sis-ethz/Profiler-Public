@@ -15,6 +15,7 @@ class StructureLearner(object):
             'solver': 'cd',
             'max_iter': 300,
             'zero': 0,
+            'sigma': 1e-6,
         }
         self.width = -1
         self.Gs = None
