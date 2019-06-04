@@ -17,7 +17,7 @@ class Dataset(object):
         self.field = []
         self.original_dtypes = None
         self.dtypes = None
-        self.operators = None
+        self.operators = {}
 
     def load_data(self, name, src, fpath, df, **kwargs):
         param = {
@@ -27,11 +27,9 @@ class Dataset(object):
             'dropcol': None,
             'encoding': 'utf-8',
             'normalize': True,
-            'null': "_empty_",
             'min_categories_for_embedding': 10,
         }
         param.update(kwargs)
-        setattr(self, 'null', param['null'])
         setattr(self, 'name', name)
 
         if src == FILE:
@@ -56,7 +54,6 @@ class Dataset(object):
             self.normalize()
 
         self.infer_column_types(param['min_categories_for_embedding'])
-        self.infer_operators()
 
     def normalize(self):
         """
@@ -68,32 +65,49 @@ class Dataset(object):
         self.df.dropna(axis=1, how='all', inplace=True)
 
         for i, t in enumerate(self.df.dtypes):
-            # replace all nans non-numeric data to self.nan, strip whitespaces, and convert to lowercase
-            if np.issubdtype(t, np.number):
+            # strip whitespaces, and convert to lowercase
+            if np.issubdtype(t, np.number) or np.issubdtype(t, np.datetime64):
                 continue
-            self.df.iloc[:, i] = self.df.iloc[:, i].replace(np.nan, self.null, regex=True).str.strip().str.lower()
+            self.df.iloc[:, i] = self.df.iloc[:, i].str.strip().str.lower()
+
+    def replace_null(self, attr=None):
+        def replace_null_helper(attr):
+            # replace all nans non-numeric data to same value
+            if self.dtypes[attr] not in [DATE, NUMERIC]:
+                self.df[attr].replace(np.nan, self.env['null'], regex=True)
+        if attr:
+            replace_null_helper(attr)
+        else:
+            for attr in self.field:
+                replace_null_helper(attr)
 
     def infer_column_types(self, min_cate):
-        types = {}
+        self.dtypes = {}
         self.field = self.df.columns.values
         for i, c in enumerate(self.df.dtypes):
             # test if it is numeric
             if np.issubdtype(c, np.number):
-                types[self.field[i]] = NUMERIC
+                self.dtypes[self.field[i]] = NUMERIC
+                self.infer_operator(self.field[i])
                 continue
             # test if it is category with few types
             if self.df.iloc[:, i].unique().shape[0] >= min_cate:
-                types[self.field[i]] = TEXT
+                self.df[self.field[i]] = self.df[self.field[i]].astype('str')
+                self.dtypes[self.field[i]] = TEXT
+                self.infer_operator(self.field[i])
                 continue
             self.df[self.field[i]] = self.df[self.field[i]].astype('str')
-            types[self.field[i]] = CATEGORICAL
+            self.dtypes[self.field[i]] = CATEGORICAL
+            self.infer_operator(self.field[i])
 
-        logger.info("inferred types of attributes: {}".format(json.dumps(types, indent=4)))
+        logger.info("inferred types of attributes: {}".format(json.dumps(self.dtypes, indent=4)))
         logger.info("(possible types: %s)" % (", ".join(DATA_TYPES)))
-        self.dtypes = types
-        self.original_dtypes = types
+        self.original_dtypes = self.dtypes
+        logger.info("inferred operators of attributes: {}".format(self.operators))
+        logger.info("(possible operators: %s)" % (", ".join(OPERATORS)))
 
-    def change_dtypes(self, names, types):
+
+    def change_dtypes(self, names, types, regexs):
 
         def validate_type(tp):
             if tp not in DATA_TYPES:
@@ -105,39 +119,37 @@ class Dataset(object):
                 raise ValueError("Invalid Attribute Name")
             return n
 
-        def update(n, tp):
+        def update(n, tp, regex):
             self.dtypes[validate_name(n)] = validate_type(tp)
-            if tp == NUMERIC:
-                self.df[n] = pd.to_numeric(self.df[n], errors='coerce')
-                logger.info("updated types of {} to 'numeric'".format(n))
+            if regex:
+                df = self.df[n].str.extract(regex, expand=False)
             else:
-                self.df[n] = self.df[n].astype('str')
+                df = self.df[n]
+            if tp == NUMERIC:
+                self.df[n] = pd.to_numeric(df, errors='coerce')
+                logger.info("updated types of {} to 'numeric'".format(n))
+            elif tp == DATE:
+                self.df[n] = pd.to_datetime(df, errors='coerce')
+            else:
+                self.df[n] = df.astype('str')
                 logger.info("updated types of {} to '{}'".format(n, tp))
+            self.infer_operator(n)
+            logger.info("updated operators of {} to {}".format(n, self.operators[n]))
 
         if isinstance(names, str):
-            update(names, types)
+            update(names, types, regexs)
         else:
-            if isinstance(types, str):
-                for name in names:
-                    update(name, types)
-            else:
-                for name, t in zip(names, types):
-                    update(name, t)
-        self.infer_operators()
+            for name, t, regex in zip(names, types, regexs):
+                update(name, t, regex)
         logger.info("updated inferred operators of attributes: {}".format(self.operators))
 
-    def infer_operators(self):
-        operators = {}
-        for attr in self.dtypes:
-            if self.dtypes[attr] == NUMERIC:
-                # operators[attr] = [EQ, NEQ, GT, LT]
-                operators[attr] = [EQ, GT, LT]
-            else:
-                # operators[attr] = [EQ, NEQ]
-                operators[attr] = [EQ]
-        self.operators = operators
-        logger.info("inferred operators of attributes: {}".format(operators))
-        logger.info("(possible operators: %s)" % (", ".join(OPERATORS)))
+    def infer_operator(self, attr):
+        if (self.dtypes[attr] in [NUMERIC, DATE]) and self.env['inequality']:
+            # operators[attr] = [EQ, NEQ, GT, LT]
+            self.operators[attr] = [EQ, GT, LT]
+        else:
+            # operators[attr] = [EQ, NEQ]
+            self.operators[attr] = [EQ]
 
     def change_operators(self, names, operators):
 

@@ -13,19 +13,63 @@ class StructureLearner(object):
         self.param = {
             'sparsity': 0.01,
             'solver': 'cd',
-            'max_iter': 300,
-            'zero': 0,
-            'sigma': 1e-6,
+            'max_iter': 500,
+            'lower_triangular': 0,
+            'threshold': -1,
         }
         self.width = -1
         self.Gs = None
         self.idx = None
+        self.B = None
+        self.p = -1
+        self.n = -1
+        self.s_p = -1
 
-    def recover_moral(self, data, **kwargs):
+    def learn(self, data, null_pb, sample_size, **kwargs):
         self.param.update(kwargs)
-        inv_cov = self.estimate_inverse_covariance(data)
-        self.inv_cov = inv_cov
+        self.n = sample_size
+        self.p = data.shape[1]
+        columns = data.columns.values
+        self.est_cov = self.estimate_covariance(data.values, null_pb, columns)
+        self.inv_cov = self.estimate_inverse_covariance(self.est_cov.values, columns)
+
+    @staticmethod
+    def get_df(matrix, columns):
+        df = pd.DataFrame(data=matrix, columns=columns)
+        df.index = columns
+
+    def estimate_inverse_covariance(self, est_cov, columns):
+        """
+        estimate inverse covariance matrix
+        :param data: dataframe
+        :return: dataframe with attributes as both index and column names
+        """
+        # estimate inverse_covariance
+        _, inv_cov = graphical_lasso(est_cov, alpha=self.param['sparsity'], mode=self.param['solver'],
+                                     max_iter=self.param['max_iter'])
+        self.s_p = np.count_nonzero(inv_cov)
+        # apply threshold
+        if self.param['threshold'] == -1:
+            self.param['threshold'] = np.sqrt(np.log(self.p)*(self.s_p)/self.n)
+        logger.info("use threshold %.4f" % self.param['threshold'])
+        inv_cov[inv_cov > self.param['threshold']] = 0
+        # add index/column names
+        inv_cov = StructureLearner.get_df(inv_cov, columns)
         return inv_cov
+
+    def estimate_covariance(self, X, null_pb, columns):
+        # centralize data
+        X = X - np.mean(X, axis=0)
+        # standardize data
+        #X = X / np.linalg.norm(X, axis=0)
+        # with missing value
+        cov = np.dot(X.T, X) / X.shape[0]
+        self.cov = cov
+        m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-null_pb))
+        np.fill_diagonal(m, 1/(1-null_pb))
+        est_cov = np.multiply(cov, m)
+        est_cov = StructureLearner.get_df(est_cov, columns)
+        return est_cov
 
     def recover_dag(self, inv_cov):
         G = self.construct_moral_graphs(inv_cov)
@@ -35,22 +79,6 @@ class StructureLearner(object):
             TD = treewidth_decomp(G)
             # step 2: nice tree decomposition
             NTD = self.nice_tree_decompose(TD)
-
-    def estimate_inverse_covariance(self, data):
-        """
-
-        :param data: dataframe
-        :return: dataframe with attributes as both index and column names
-        """
-        # Scale dataset
-        scaler = preprocessing.MinMaxScaler()
-        d_scaled = pd.DataFrame(scaler.fit_transform(data))
-        est_cov = d_scaled.cov().values
-        _, inv_cov = graphical_lasso(est_cov, alpha=self.param['sparsity'], mode=self.param['solver'],
-                                     max_iter=self.param['max_iter'])
-        inv_cov = pd.DataFrame(data=inv_cov, columns=data.columns)
-        inv_cov.index = inv_cov.columns.values
-        return inv_cov
 
     def construct_moral_graphs(self, inv_cov):
         G = UndirectedGraph()

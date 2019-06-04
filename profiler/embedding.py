@@ -5,7 +5,7 @@ from scipy.spatial.distance import cosine
 from profiler.globalvar import *
 import numpy as np
 import pandas as pd
-import logging
+import logging, os
 
 
 logger = logging.getLogger(__name__)
@@ -18,83 +18,95 @@ def get_cos(vec):
 
 class SIF(object):
 
-    def __init__(self, env, data, dim, tokenizer, a=1e-3, load=False, path='', save=True):
+    def __init__(self, env, config, data, path):
         """
-
         :param corpus:
         :param dim:
         :param a: constant used for SIF embedding
         """
-        self.a = a
-        self.dim = dim
-        self.workers = env['workers']
+        self.env = env
+        self.config = config
+        self.vec, self.vocab = self.load_vocab(data, path)
 
-        if load:
-            # compute weights
-            corpus = [tokenizer(row) for row in data]
 
-            # train language model
-            self.wv = LocalFasttextModel(env, corpus, dim)
-            self.weights, self.wordvecs = self.build_vocab(corpus, wv)
-            if save:
-                self.save_model(path)
+    def load_vocab(self, data, path):
+        if not self.config['load']:
+            # build vocab
+            vec, vocab = self.build_vocab(data, path)
         else:
-            self.weights = pd.read_csv(path+'weight.csv', index_col='word')
-            self.wordvecs = pd.read_csv(path+'vec.csv', index_col='word')
+            vec = np.load(path+'vec.npy', allow_pickle=True)
+            unique_cells = np.load(path+'vocab.npy', allow_pickle=True)
+            vocab = pd.DataFrame(data=unique_cells, columns=['word']).reset_index().set_index('word')
+        return vec, vocab
 
-    def build_vocab(self, corpus, wv):
+    def build_vocab(self, data, path):
+        # tokenize cell
+        logger.info('tokenize cell')
+        corpus = [self.config['tokenizer'](i) for i in data]
+        max_length = max([len(s) for s in corpus])
+
+        # train language model
+        logger.info('train language model')
+        wv = LocalFasttextModel(self.env, self.config, corpus)
+
         # compute weights
+        logger.info('compute weights')
         all_words = np.hstack(corpus)
         unique, counts = np.unique(all_words, return_counts=True)
         freq = counts / len(all_words)
-        weight = self.a / (self.a + freq)
-        weights = pd.DataFrame(list(zip(unique, weight)), columns=['word', 'weight']).set_index('word')
-        # no need to handle null since it will be handled in comparison
-        # handle padding
-        # weights.loc['_padding_'] = np.zeros((self.dim,))
-        
-        # obtain word vector 
-        wordvecs = pd.DataFrame(np.hstack([unique.reshape(-1,1), wv.get_array_vectors(unique)])).set_index(0)
-        wordvecs.index.name = 'word'
-        return weights, wordvecs
-    
-    def save_model(self, path):
-        self.weights.to_csv(path+'weight.csv')
-        self.wordvecs.to_csv(path+'vec.csv')
-    
-    def get_weights(self, words):
-        return self.weights.loc[words].values
-    
-    def get_wv(self, words):
-        return self.wordvecs.loc[words].values
+        weight = self.config['a'] / (self.config['a'] + freq)
 
-    def get_cell_vector(self, cell):
-        if isinstance(cell, str):
-            cell = self.tokenizer(cell)
-        w = self.get_weights(cell).transpose()
-        v = self.get_wv(cell)
-        return np.matmul(w, v)/np.sum(w)
+        # obtain word vector
+        logger.info('create vector map')
+        vec = wv.get_array_vectors(unique)
+        word_vocab = pd.DataFrame(list(zip(unique, list(range(len(corpus))))),
+                                  columns=['word', 'idx']).set_index('word')
 
-    def get_array_vectors(self, array):
-        # TODO: add parallellization option
-        return np.array(list(map(self.get_cell_vector, array))).squeeze()
+        def get_cell_vector(cell):
+            cell = self.config['tokenizer'](cell)
+            idx = word_vocab.loc[cell, 'idx'].values
+            v = vec[idx]
+            if len(cell) == 1:
+                return v
+            w = weight[idx].reshape(1, -1)
+            return list(np.matmul(w, v)/np.sum(w))
+        # compute embedding for each cell
+        if max_length == 1:
+            unique_cells = unique
+        else:
+            unique_cells = np.unique(data)
+            vec = np.array(list(map(get_cell_vector, unique_cells))).squeeze()
+        vocab = pd.DataFrame(data=unique_cells, columns=['word']).reset_index().set_index('word')
+        vocab.loc[self.env['null'], 'index'] = vec.shape[0]
+        vec = np.append(vec, [[-1]*vec.shape[1]], 0)
+
+        # (optional) save model
+        if self.config['save']:
+            logger.info('save vec and vocab')
+            np.save(path+'vec', vec)
+            np.save(path+'vocab', unique_cells)
+        return vec, vocab
+
+    def get_embedding(self, array):
+        idxs = self.vocab.loc[array].values
+        vecs = self.vec[idxs, :]
+        return vecs
 
 
 class LocalFasttextModel(object):
 
-    def __init__(self, env, corpus, dim):
-        self.model = FastText(size=dim, window=3, min_count=1, batch_words=100)
+    def __init__(self, env, config, corpus):
+        self.model = FastText(size=config['dim'], window=config['window'], min_count=1, batch_words=config['batch_words'])
         self.model.build_vocab(sentences=corpus)
         self.model.train(sentences=corpus, total_examples=self.model.corpus_count, epochs=self.model.epochs,
                          seed=env['seed'])
-        self.dim = dim
+        self.dim = config['dim']
 
     def get_word_vector(self, word):
         return self.model.wv[word]
 
     def get_array_vectors(self, array):
         """
-
         :param array: 2d array
         :return:
         """
@@ -111,52 +123,49 @@ class EmbeddingEngine(object):
         self.ds = ds
         self.embedding_type = ATTRIBUTE_EMBEDDING
         self.models = None
-        self.dim = -1
+        self.param = {
+            'dim': 128,
+            'type': ATTRIBUTE_EMBEDDING,
+            'tokenizer': lambda x: x.split(),
+            'a': 1e-6,
+            'path': '',
+            'save': False,
+            'load': False,
+            'batch_words': 100,
+            'window': 3,
+        }
 
-    def train(self, embedding_size, embedding_type, tokenizer=lambda x: x.split(), path='', save=True, load=False):
-        self.embedding_type = embedding_type
-        if self.embedding_type == ATTRIBUTE_EMBEDDING:
+    def train(self, **kwargs):
+        self.param.update(kwargs)
+
+        if not self.param['load']:
+            if not os.path.exists(self.param['path']):
+                os.makedirs(self.param['path'])
+
+        if self.param['type'] == ATTRIBUTE_EMBEDDING:
             self.models = {}
             to_embed = self.ds.to_embed()
             if self.env['workers'] > 1:
                 pool = ThreadPoolExecutor(self.env['workers'])
-                for i, model in enumerate(pool.map(lambda x: SIF(self.env, self.ds.df[x], dim=embedding_size,
-                                                                 tokenizer=tokenizer), to_embed)):
+                for i, model in enumerate(pool.map(lambda attr: SIF(self.env, self.param, self.ds.df[attr],
+                                                                    path=os.path.join(self.param['path']+attr)),
+                                                   to_embed)):
                     self.models[to_embed[i]] = model
             else:
                 for attr in to_embed:
-                    self.models[attr] = SIF(self.env, self.ds.df[attr], dim=embedding_size, tokenizer=tokenizer, 
-                        path=os.path.join(path+attr), load=load, save=save)
-        elif self.embedding_type == ONE_HOT_EMBEDDING:
-            raise Exception("NOT IMPLEMENTED")
-            # self.models = [OneHotEncoderModel(self, source_data)]
-        elif self.embedding_type == PRETRAINED_EMBEDDING:
+                    self.models[attr] = SIF(self.env, self.param, self.ds.df[attr],
+                                            path=os.path.join(self.param['path']+attr))
+
+        elif self.param['type'] == PRETRAINED_EMBEDDING:
             raise Exception("NOT IMPLEMENTED")
         else:
-            raise Exception("[%s] is not a valid embedding type!" % embedding_type)
-        #self.dim = self.models[0].dim
+            raise Exception("[%s] is not a valid embedding type!" % self.param['type'])
 
-    def get_word_vector(self, word, attr=None):
-        if word == self.ds.nan:
-            return np.array([np.nan]*self.dim)
-        if self.embedding_type != ATTRIBUTE_EMBEDDING:
-            return self.models[0].get_word_vector(word)
-        return self.models[attr].get_word_vector(word)
-
-    def get_array_vectors(self, array, attr=None):
+    def get_embedding(self, array, attr=None):
         # handle nan
         if self.embedding_type != ATTRIBUTE_EMBEDDING:
             return self.models[0].get_array_vectors(array)
-        return self.models[attr].get_array_vectors(array)
-
-    def get_pair_distance(self, a, b, attr=None):
-        nan = (a == self.ds.nan) | (b == self.ds.nan)
-        vec1 = self.get_array_vectors(a[~nan], attr=attr)
-        vec2 = self.get_array_vectors(b[~nan], attr=attr)
-        sim = np.zeros(a.shape[0], dtype=float)
-        sim[nan] = np.nan
-        sim[~nan] = [np.dot(v1, v2)/(np.linalg.norm(v1)*np.linalg.norm(v2)) for v1, v2 in zip(vec1, vec2)]
-        return sim
+        return self.models[attr].get_embedding(array)
 
 
 
