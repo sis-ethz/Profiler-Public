@@ -388,6 +388,7 @@ def treewidth_decomp(G):
 
     # get first node from heuristic
     elim_node = min_degree.best_node(graph)
+
     while elim_node is not None:
         # connect all neighbours with each other
         nbrs = graph[elim_node]
@@ -408,9 +409,10 @@ def treewidth_decomp(G):
     # the abort condition is met; put all remaining nodes into one bag
     decomp = Tree()
     first_bag = frozenset(graph.keys())
-    first_bag_idx = decomp.add_node(first_bag)
+    decomp.add_node(first_bag)
 
     treewidth = len(first_bag) - 1
+    decomp.width = treewidth
 
     while node_stack:
         # get node and its neighbors from the stack
@@ -444,8 +446,10 @@ def treewidth_decomp(G):
                 new_bag_idx = idx
 
         if old_bag_idx == -1:
+            print(old_bag)
             old_bag_idx = decomp.add_node(old_bag)
         if new_bag_idx == -1:
+            print(new_bag)
             new_bag_idx = decomp.add_node(new_bag)
         decomp.add_undirected_edge(old_bag_idx, new_bag_idx)
         decomp.width = treewidth

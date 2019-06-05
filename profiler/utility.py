@@ -20,7 +20,7 @@ def visualize_heatmap(heatmap, title=None, filename="heatmap.png", save=False):
 
 def find_all_subsets(S):
     subsets = [find_subsets(S, i) for i in range(1, len(S)+1)]
-    return list(itertools.chain.from_iterable(subsets))
+    return list(itertools.chain.from_iterable(subsets)) + [set()]
 
 def find_subsets(S, m):
     '''

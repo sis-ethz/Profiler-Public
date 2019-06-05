@@ -17,6 +17,7 @@ class StructureLearner(object):
             'lower_triangular': 0,
             'threshold': -1,
             'visualize': True,
+            'diagonal': 0,
         }
         self.width = -1
         self.Gs = None
@@ -54,7 +55,9 @@ class StructureLearner(object):
         if self.param['threshold'] == -1:
             self.param['threshold'] = np.sqrt(np.log(self.p)*(self.s_p)/self.n)
         logger.info("use threshold %.4f" % self.param['threshold'])
-        inv_cov[inv_cov > self.param['threshold']] = 0
+        inv_cov[np.abs(inv_cov) < self.param['threshold']] = 0
+        # set diagonal to zero
+        np.fill_diagonal(inv_cov, self.param['diagonal'])
         # add index/column names
         inv_cov = StructureLearner.get_df(inv_cov, columns)
         if self.param['visualize']:
@@ -80,43 +83,60 @@ class StructureLearner(object):
         G = self.construct_moral_graphs(self.inv_cov)
         self.Gs = G.get_undirected_connected_components()
         if self.param['visualize']:
-            plot_graph(G)
-        R = []
-        for G in self.Gs:
+            plot_graph(G, title="all connected components")
+        Rs = {}
+        for i, G in enumerate(self.Gs):
             if self.param['visualize']:
-                plot_graph(G)
+                plot_graph(G, title="%d.1 connected component"%i)
             # step 1: tree decomposition
             TD = treewidth_decomp(G)
             if self.param['visualize']:
-                plot_graph(TD, label=True)
+                plot_graph(TD, label=True, title="%d.2 tree width decomposition"%i)
             # step 2: nice tree decomposition
             NTD = self.nice_tree_decompose(TD)
             if self.param['visualize']:
-                plot_graph(NTD, label=False, directed=True)
+                plot_graph(NTD, label=False, directed=True, title="%d.3 nice tree decomposition"%i)
                 print_tree(NTD, NTD.root)
             # step 3: dynamic programming
             self.R = {}
             R = self.dfs(G, NTD, NTD.root)
-            R.append(R)
+            Rs[i] = R
             if self.param['visualize']:
-                print(R[0])
+                dag = self.construct_dag_from_record(R[0])
+                plot_graph(dag, label=True, directed=True,
+                           title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
             break
-        return R
+        return Rs
+
+    def construct_dag_from_record(self, R):
+        a, p, _ = R
+        nodes = list(p.keys())
+        dag = DirectedGraph()
+        for n in nodes:
+            dag.add_node(self.idx_to_col.loc[n, 'col'], idx=n)
+        for child, parents in a.items():
+            for p in parents:
+                dag.add_directed_edge(p, child)
+            if self.param['visualize']:
+                print("[{}] -> {}".format(", ".join(self.idx_to_col.loc[parents, 'col'].values),
+                                        self.idx_to_col.loc[child, 'col']))
+        return dag
 
     def construct_moral_graphs(self, inv_cov):
         G = UndirectedGraph()
-        self.idx = pd.DataFrame(zip(np.array(G.add_nodes(inv_cov.columns)), inv_cov.columns),
-                                columns=['idx','col']).set_index('col')
+        idx_col = pd.DataFrame(zip(np.array(G.add_nodes(inv_cov.columns)), inv_cov.columns),
+                                columns=['idx','col'])
+        self.col_to_idx = idx_col.set_index('col')
+        self.idx_to_col = idx_col.set_index('idx')
         for i, attr in enumerate(inv_cov):
             if i == 0:
                 continue
             # do not consider a_op1 -> a_op2
             columns = np.array([c for c in inv_cov.columns.values if "_".join(attr.split('_')[0]) not in c])
-            neighbors = columns[(inv_cov.loc[attr, columns]).abs() > self.env['tol']]
-            G.add_undirected_edges([self.idx.loc[attr, 'idx']]*len(neighbors), self.idx.loc[neighbors, 'idx'])
+            neighbors = columns[(inv_cov.loc[attr, columns]).abs() > 0]
+            G.add_undirected_edges([self.col_to_idx.loc[attr, 'idx']]*len(neighbors),
+                                   self.col_to_idx.loc[neighbors, 'idx'])
 
-        if self.param['visualize']:
-            plot_graph(G)
         return G
 
     def nice_tree_decompose(self, TD):
@@ -146,10 +166,13 @@ class StructureLearner(object):
 
     def score(self, j, S):
         S = list(S)
+        if len(S) == 0:
+            return 0
         k = len(S)
         score = self.est_cov.iloc[j,j] - (self.est_cov.iloc[j,S].values.reshape(1,-1) *
                                           np.linalg.inv(self.est_cov.iloc[S,S].values.reshape(k,k)) *
                                           self.est_cov.iloc[S,j].values.reshape(-1,1))[0][0]
+        #print("score for {} -> {}: {}".format(S, j, score))
         return score
 
     def dfs(self, G, tree, t):
@@ -174,7 +197,7 @@ class StructureLearner(object):
                         candidates[s] = []
                     candidates[s].append((a, p, s))
             Rt = candidates[min(list(candidates.keys()))]
-            print("R for node t = {} with X(t) = {} candidate size: {}".format(t, tree.idx_to_name[t],
+            print("R for join node t = {} with X(t) = {} candidate size: {}".format(t, tree.idx_to_name[t],
                                                                                len(tree.idx_to_name[t])))
             self.R[t] = Rt
         elif tree.node_types[t] == INTRO:
@@ -183,7 +206,8 @@ class StructureLearner(object):
             Xt = tree.idx_to_name[t]
             Xtc = tree.idx_to_name[child]
             v0 = list(Xt - tree.idx_to_name[child])[0]
-            Rt = []
+            #Rt = []
+            candidates = {}
             print("check node t = {} with X(t) = {} ".format(t, Xt))
             for P in find_all_subsets(set(G.get_neighbors(v0))):
                 for (aa, pp, ss) in self.dfs(G, tree, child):
@@ -205,10 +229,16 @@ class StructureLearner(object):
                     p = union_and_check_cycle([pp, p1, p2])
                     if p is None:
                         continue
-                    s = ss
+                    # s = ss
+                    s = ss + self.score(v0, a[v0])
                     # since score does not change, all should have same score
-                    Rt.append((a, p, s))
-            print("R for node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+                    #Rt.append((a, p, s))
+                    if s not in candidates:
+                        candidates[s] = []
+                    candidates[s].append((a, p, s))
+            Rt = candidates[min(list(candidates.keys()))]
+            print("R for intro node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+            print(Rt)
             self.R[t] = Rt
         elif tree.node_types[t] == FORGET:
             # has only one child
@@ -216,7 +246,8 @@ class StructureLearner(object):
             Xt = tree.idx_to_name[t]
             print("check node t = {} with X(t) = {} ".format(t, Xt))
             v0 = list(tree.idx_to_name[child] - Xt)[0]
-            candidates = {}
+            #candidates = {}
+            Rt = []
             for (aa, pp, ss) in self.dfs(G, tree, child):
                 a = {}
                 for v in Xt:
@@ -226,16 +257,18 @@ class StructureLearner(object):
                     if u not in Xt:
                         continue
                     p[u] = [v for v in pp[u] if v in Xt]
-                s = ss + self.score(v0, aa[v0])
-                if s not in candidates:
-                    candidates[s] = []
-                candidates[s].append((a, p, s))
-            Rt = candidates[min(list(candidates.keys()))]
-            print("R for node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+                #s = ss + self.score(v0, aa[v0])
+                s = ss
+                # if s not in candidates:
+                #     candidates[s] = []
+                # candidates[s].append((a, p, s))
+                Rt.append((a, p, s))
+            #Rt = candidates[min(list(candidates.keys()))]
+            print("R for forget node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+            print(Rt)
             self.R[t] = Rt
         else:
             # leaf
-            min_score = 100000
             # 1. P is a subset of all the neighbors of the vertex in leaf
             candidates = {}
             Xt = tree.idx_to_name[t]
@@ -252,7 +285,8 @@ class StructureLearner(object):
             # get minimal-score records
             Rt = candidates[min(list(candidates.keys()))]
             self.R[t] = Rt
-            print("R for node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+            print("R for leaf node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+            print(Rt)
         return Rt
 
 def union_and_check_cycle(sets):
@@ -297,27 +331,34 @@ def is_eq_dict(dic1, dic2):
             return False
     return True
 
-def plot_graph(graph, label=False, directed=False, circle=False):
+def plot_graph(graph, label=False, directed=False, circle=False, title=None):
     import networkx as nx
     import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(12,6))
     if directed:
         G = nx.DiGraph()
     else:
         G = nx.Graph()
+    e = None
     for e in graph.get_edges():
         if label:
             G.add_edge(graph.idx_to_name[e[0]], graph.idx_to_name[e[1]])
         else:
             G.add_edge(e[0], e[1])
+    if e is None:
+        for node in graph.idx_to_name.values():
+            G.add_node(node)
     if circle:
-        nx.draw(G, with_labels=True, pos=nx.circular_layout(G))
+        nx.draw(G, ax=ax, with_labels=True, pos=nx.circular_layout(G))
     else:
-        nx.draw(G, with_labels=True)
+        nx.draw(G, ax=ax, with_labels=True)
+    if title is not None:
+        plt.title(title)
     plt.draw()
     plt.show()
     return G
 
 def print_tree(T, node, level=0):
-    print("{}[{}]{}".format("--"*level, node, T.idx_to_name[node]))
+    print("{}[{}]{}:{}".format("--"*level, node, T.node_types[node], T.idx_to_name[node]))
     for c in T.get_children(node):
         print_tree(T, c, level+1)
