@@ -6,6 +6,18 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def visualize_heatmap(heatmap, title=None, filename="heatmap.png", save=False):
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(10,8))
+    snsplt = sns.heatmap(heatmap, ax=ax, cmap=sns.color_palette("RdBu_r", 1000), center=0)
+    if title:
+        snsplt.set_title(title)
+    if save:
+        snsplt.get_figure().savefig(filename, bbox_inches='tight')
+    plt.show()
+
+
 def find_all_subsets(S):
     subsets = [find_subsets(S, i) for i in range(1, len(S)+1)]
     return list(itertools.chain.from_iterable(subsets))

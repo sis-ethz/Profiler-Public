@@ -232,24 +232,7 @@ class Session(object):
         self.struct_engine.learn(self.training_data, self.null_pb, self.sample_size, **kwargs)
         self.timer.time_end('Learn Structure')
 
-    def save_structure(self, path):
-        self.timer.time_start('Save Structure (Autoregression Matrix)')
-        self.struct_engine.save(path)
-        self.timer.time_end('Save Structure (Autoregression Matrix)')
-
     # def get_fds(self, **kwargs):
     #     self.timer.time_start('Obtain FDs')
     #     fds = self.struct_engine.get_fds(**kwargs)
     #     self.timer.time_end('Obtain FDs')
-
-    def visualize_heatmap(self, heatmap=None, title=None, filename="heatmap.png", save=False):
-        import seaborn as sns
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(figsize=(10,8))
-        if not heatmap:
-            heatmap = self.struct_engine.inv_cov
-        snsplt = sns.heatmap(heatmap, ax=ax, cmap=sns.color_palette("RdBu_r", 1000), center=0)
-        if title:
-            snsplt.set_title(title)
-        if save:
-            snsplt.get_figure().savefig(filename, bbox_inches='tight')
