@@ -5,6 +5,11 @@ from profiler.graph import *
 import pandas as pd
 
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+
 class StructureLearner(object):
 
     def __init__(self, env, ds):
@@ -18,6 +23,8 @@ class StructureLearner(object):
             'threshold': -1,
             'visualize': True,
             'diagonal': 0,
+            'take_abs': False,
+            'take_neg': True,
         }
         self.width = -1
         self.Gs = None
@@ -33,7 +40,10 @@ class StructureLearner(object):
         self.n = sample_size
         self.est_cov = self.estimate_covariance(data.values, null_pb, data.columns.values)
         self.inv_cov = self.estimate_inverse_covariance(self.est_cov.values, data.columns.values)
-        return self.recover_dag()
+        G = self.recover_moral_graphs(self.inv_cov)
+        Gs = G.get_undirected_connected_components()
+        Rs = [self.recover_dag(i, G) for i, G in enumerate(Gs)]
+        return Rs
 
     @staticmethod
     def get_df(matrix, columns):
@@ -52,10 +62,14 @@ class StructureLearner(object):
                                      max_iter=self.param['max_iter'])
         self.s_p = np.count_nonzero(inv_cov)
         # apply threshold
+        if self.param['take_neg']:
+            inv_cov = - inv_cov
+        if self.param['take_abs']:
+            inv_cov = np.abs(inv_cov)
         if self.param['threshold'] == -1:
             self.param['threshold'] = np.sqrt(np.log(self.p)*(self.s_p)/self.n)
         logger.info("use threshold %.4f" % self.param['threshold'])
-        inv_cov[np.abs(inv_cov) < self.param['threshold']] = 0
+        inv_cov[inv_cov < self.param['threshold']] = 0
         # set diagonal to zero
         np.fill_diagonal(inv_cov, self.param['diagonal'])
         # add index/column names
@@ -79,38 +93,34 @@ class StructureLearner(object):
         est_cov = StructureLearner.get_df(est_cov, columns)
         return est_cov
 
-    def recover_dag(self):
-        G = self.construct_moral_graphs(self.inv_cov)
-        self.Gs = G.get_undirected_connected_components()
+    def recover_dag(self, i, G):
         if self.param['visualize']:
-            plot_graph(G, title="all connected components")
-        Rs = {}
-        for i, G in enumerate(self.Gs):
-            if self.param['visualize']:
-                plot_graph(G, title="%d.1 connected component"%i)
-            # step 1: tree decomposition
-            TD = treewidth_decomp(G)
-            if self.param['visualize']:
-                plot_graph(TD, label=True, title="%d.2 tree width decomposition"%i)
-            # step 2: nice tree decomposition
-            NTD = self.nice_tree_decompose(TD)
-            if self.param['visualize']:
-                plot_graph(NTD, label=False, directed=True, title="%d.3 nice tree decomposition"%i)
-                print_tree(NTD, NTD.root)
-            # step 3: dynamic programming
-            self.R = {}
-            R = self.dfs(G, NTD, NTD.root)
-            Rs[i] = R
-            if self.param['visualize']:
-                dag = self.construct_dag_from_record(R[0])
-                plot_graph(dag, label=True, directed=True,
-                           title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
-            break
-        return Rs
+            plot_graph(G, title="%d.1 connected component"%i)
+        # step 1: tree decomposition
+        TD = treewidth_decomp(G)
+        if self.param['visualize']:
+            plot_graph(TD, label=True, title="%d.2 tree width decomposition"%i)
+        # step 2: nice tree decomposition
+        NTD = self.nice_tree_decompose(TD)
+        if self.param['visualize']:
+            plot_graph(NTD, label=False, directed=True, title="%d.3 nice tree decomposition"%i)
+            print_tree(NTD, NTD.root)
+        # step 3: dynamic programming
+        self.R = {}
+        R = self.dfs(G, NTD, NTD.root)
+        # optional: visualize
+        if self.param['visualize']:
+            dag = self.construct_dag_from_record(R[0])
+            plot_graph(dag, label=True, directed=True,
+                       title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
+        return R
 
     def construct_dag_from_record(self, R):
         a, p, _ = R
-        nodes = list(p.keys())
+        nodes = set(p.keys())
+        for v in p.values():
+            nodes = nodes.union(set(v))
+        print(nodes)
         dag = DirectedGraph()
         for n in nodes:
             dag.add_node(self.idx_to_col.loc[n, 'col'], idx=n)
@@ -122,7 +132,7 @@ class StructureLearner(object):
                                         self.idx_to_col.loc[child, 'col']))
         return dag
 
-    def construct_moral_graphs(self, inv_cov):
+    def recover_moral_graphs(self, inv_cov):
         G = UndirectedGraph()
         idx_col = pd.DataFrame(zip(np.array(G.add_nodes(inv_cov.columns)), inv_cov.columns),
                                 columns=['idx','col'])
@@ -134,9 +144,14 @@ class StructureLearner(object):
             # do not consider a_op1 -> a_op2
             columns = np.array([c for c in inv_cov.columns.values if "_".join(attr.split('_')[0]) not in c])
             neighbors = columns[(inv_cov.loc[attr, columns]).abs() > 0]
+            if len(neighbors) == 0:
+                continue
             G.add_undirected_edges([self.col_to_idx.loc[attr, 'idx']]*len(neighbors),
                                    self.col_to_idx.loc[neighbors, 'idx'])
-
+            if self.param['visualize']:
+                print("{} -> {}".format(",".join(neighbors), attr))
+        if self.param['visualize']:
+            plot_graph(G, title="all connected components")
         return G
 
     def nice_tree_decompose(self, TD):
@@ -172,7 +187,7 @@ class StructureLearner(object):
         score = self.est_cov.iloc[j,j] - (self.est_cov.iloc[j,S].values.reshape(1,-1) *
                                           np.linalg.inv(self.est_cov.iloc[S,S].values.reshape(k,k)) *
                                           self.est_cov.iloc[S,j].values.reshape(-1,1))[0][0]
-        #print("score for {} -> {}: {}".format(S, j, score))
+        #logger.debug("score for {} -> {}: {}".format(S, j, score))
         return score
 
     def dfs(self, G, tree, t):
@@ -180,7 +195,7 @@ class StructureLearner(object):
             return self.R[t]
         # R(a,p,s): a - parent sets; p: directed path, s:score
         if tree.node_types[t] == JOIN:
-            print("check node t = {} with X(t) = {} ".format(t, tree.idx_to_name[t]))
+            logger.debug("check node t = {} with X(t) = {} ".format(t, tree.idx_to_name[t]))
             candidates = {}
             # has children t1 and t2
             t1, t2 = tree.get_children(t)
@@ -188,7 +203,7 @@ class StructureLearner(object):
                 for (a2, p2, s2) in self.dfs(G, tree, t2):
                     if not is_eq_dict(a1, a2):
                         continue
-                    a = a1
+                    a = deepcopy(a1)
                     p = union_and_check_cycle([p1, p2])
                     if p is None:
                         continue
@@ -197,8 +212,9 @@ class StructureLearner(object):
                         candidates[s] = []
                     candidates[s].append((a, p, s))
             Rt = candidates[min(list(candidates.keys()))]
-            print("R for join node t = {} with X(t) = {} candidate size: {}".format(t, tree.idx_to_name[t],
+            logger.debug("R for join node t = {} with X(t) = {} candidate size: {}".format(t, tree.idx_to_name[t],
                                                                                len(tree.idx_to_name[t])))
+            logger.debug("{}".format(Rt))
             self.R[t] = Rt
         elif tree.node_types[t] == INTRO:
             # has only one child
@@ -208,24 +224,22 @@ class StructureLearner(object):
             v0 = list(Xt - tree.idx_to_name[child])[0]
             #Rt = []
             candidates = {}
-            print("check node t = {} with X(t) = {} ".format(t, Xt))
+            logger.debug("check node t = {} with X(t) = {} ".format(t, Xt))
             for P in find_all_subsets(set(G.get_neighbors(v0))):
                 for (aa, pp, ss) in self.dfs(G, tree, child):
                     # parent sets
                     a = {}
-                    a[v0] = P
+                    a[v0] = set(P)
                     for v in Xtc:
-                        a[v] = aa[v]
+                        a[v] = set(aa[v])
                     # directed path
                     p1 = {}
+                    # p1: parents of new node v0 point to v0
                     for u in P:
                         p1[u] = [v0]
                     p2 = {}
-                    for u in Xtc:
-                        for vv in aa[u]:
-                            if vv not in p2:
-                                p2[vv] = []
-                            p2[vv].append(u)
+                    # p2: v0 is parent of existing node v0 -> exist
+                    p2[v0] = [u for u in Xtc if v0 in aa[u]]
                     p = union_and_check_cycle([pp, p1, p2])
                     if p is None:
                         continue
@@ -236,22 +250,29 @@ class StructureLearner(object):
                     if s not in candidates:
                         candidates[s] = []
                     candidates[s].append((a, p, s))
+            if len(candidates.keys()) == 0:
+                logger.info("aa: {}".format(aa))
+                logger.info("pp: {}".format(pp))
+                logger.info("p1: {}".format(p1))
+                logger.info("p2: {}".format(p2))
+                logger.info("check: {}".format(union_and_check_cycle([pp, p1, p2],debug=True)))
+                raise Exception("No DAG found")
             Rt = candidates[min(list(candidates.keys()))]
-            print("R for intro node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
-            print(Rt)
+            logger.debug("R for intro node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+            logger.debug("{}".format(Rt))
             self.R[t] = Rt
         elif tree.node_types[t] == FORGET:
             # has only one child
             child = tree.get_children(t)[0]
             Xt = tree.idx_to_name[t]
-            print("check node t = {} with X(t) = {} ".format(t, Xt))
+            logger.debug("check node t = {} with X(t) = {} ".format(t, Xt))
             v0 = list(tree.idx_to_name[child] - Xt)[0]
             #candidates = {}
             Rt = []
             for (aa, pp, ss) in self.dfs(G, tree, child):
                 a = {}
                 for v in Xt:
-                    a[v] = aa[v]
+                    a[v] = set(aa[v])
                 p = {}
                 for u in pp:
                     if u not in Xt:
@@ -263,9 +284,10 @@ class StructureLearner(object):
                 #     candidates[s] = []
                 # candidates[s].append((a, p, s))
                 Rt.append((a, p, s))
+            logger.debug("{}".format(Rt))
             #Rt = candidates[min(list(candidates.keys()))]
-            print("R for forget node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
-            print(Rt)
+            logger.debug("R for forget node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+            logger.debug("{}".format(Rt))
             self.R[t] = Rt
         else:
             # leaf
@@ -274,7 +296,7 @@ class StructureLearner(object):
             Xt = tree.idx_to_name[t]
             v = list(Xt)[0]
             for P in find_all_subsets(set(G.get_neighbors(v))):
-                a = {v: P}
+                a = {v: set(P)}
                 s = self.score(list(Xt)[0], P)
                 p = {}
                 for u in P:
@@ -285,20 +307,34 @@ class StructureLearner(object):
             # get minimal-score records
             Rt = candidates[min(list(candidates.keys()))]
             self.R[t] = Rt
-            print("R for leaf node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
-            print(Rt)
+            logger.debug("R for leaf node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
+            logger.debug("{}".format(Rt))
         return Rt
 
-def union_and_check_cycle(sets):
-    s0 = sets[0]
+def union_and_check_cycle(sets, debug=False):
+    s0 = None
     # each set is a dictionary with left: [all rights] s.t. there is a directed edge from left to right
-    for s in sets[1:]:
+    for s in sets:
+        if debug:
+            logger.debug("s: {}".format(s))
+        if len(s) == 0:
+            if debug:
+                logger.debug("empty, continue")
+            continue
+        if s0 is None:
+            s0 = deepcopy(s)
+            if debug:
+                logger.debug("assign to s0, continue")
+            continue
+        if debug:
+            logger.debug("merge with s0")
         for (l, rights) in s.items():
             for r in rights:
                 # try to add (l,r) to s0
                 # if (r,l) in s0 as well, has a cycle
                 if r in s0:
                     if l in s0[r]:
+                        # cycle
                         return None
                 if l in s0:
                     if r in s0[l]:
@@ -319,6 +355,8 @@ def union_and_check_cycle(sets):
                                 # cycle
                                 return None
                         s0[ll].append(r)
+    if debug:
+        logger.debug("merged: {}".format(s0))
     return s0
 
 def is_eq_dict(dic1, dic2):
