@@ -105,15 +105,16 @@ class StructureLearner(object):
         if self.param['visualize']:
             plot_graph(NTD, label=False, directed=True, title="%d.3 nice tree decomposition"%i)
             print_tree(NTD, NTD.root)
-        # step 3: dynamic programming
-        self.R = {}
-        R = self.dfs(G, NTD, NTD.root)
-        # optional: visualize
-        if self.param['visualize']:
-            dag = self.construct_dag_from_record(R[0])
-            plot_graph(dag, label=True, directed=True,
-                       title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
-        return R
+        return NTD
+        # # step 3: dynamic programming
+        # self.R = {}
+        # R = self.dfs(G, NTD, NTD.root)
+        # # optional: visualize
+        # if self.param['visualize']:
+        #     dag = self.construct_dag_from_record(R[0])
+        #     plot_graph(dag, label=True, directed=True,
+        #                title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
+        # return R
 
     def construct_dag_from_record(self, R):
         a, p, _ = R
@@ -211,6 +212,8 @@ class StructureLearner(object):
                     if s not in candidates:
                         candidates[s] = []
                     candidates[s].append((a, p, s))
+            if len(candidates.keys()) == 0:
+                raise Exception("No DAG found")
             Rt = candidates[min(list(candidates.keys()))]
             logger.debug("R for join node t = {} with X(t) = {} candidate size: {}".format(t, tree.idx_to_name[t],
                                                                                len(tree.idx_to_name[t])))
@@ -222,8 +225,8 @@ class StructureLearner(object):
             Xt = tree.idx_to_name[t]
             Xtc = tree.idx_to_name[child]
             v0 = list(Xt - tree.idx_to_name[child])[0]
-            #Rt = []
-            candidates = {}
+            Rt = []
+            #candidates = {}
             logger.debug("check node t = {} with X(t) = {} ".format(t, Xt))
             for P in find_all_subsets(set(G.get_neighbors(v0))):
                 for (aa, pp, ss) in self.dfs(G, tree, child):
@@ -243,23 +246,19 @@ class StructureLearner(object):
                     p = union_and_check_cycle([pp, p1, p2])
                     if p is None:
                         continue
-                    # s = ss
-                    s = ss + self.score(v0, a[v0])
+                    s = ss
+                    #s = ss + self.score(v0, a[v0])
                     # since score does not change, all should have same score
-                    #Rt.append((a, p, s))
-                    if s not in candidates:
-                        candidates[s] = []
-                    candidates[s].append((a, p, s))
-            if len(candidates.keys()) == 0:
-                logger.info("aa: {}".format(aa))
-                logger.info("pp: {}".format(pp))
-                logger.info("p1: {}".format(p1))
-                logger.info("p2: {}".format(p2))
-                logger.info("check: {}".format(union_and_check_cycle([pp, p1, p2],debug=True)))
-                raise Exception("No DAG found")
-            Rt = candidates[min(list(candidates.keys()))]
+                    Rt.append((a, p, s))
+            #         if s not in candidates:
+            #             candidates[s] = []
+            #         candidates[s].append((a, p, s))
+            # if len(candidates.keys()) == 0:
+            #     logger.info("check: {}".format(union_and_check_cycle([pp, p1, p2],debug=True)))
+            #     raise Exception("No DAG found")
+            # Rt = candidates[min(list(candidates.keys()))]
             logger.debug("R for intro node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
-            logger.debug("{}".format(Rt))
+            # logger.debug("{}".format(Rt))
             self.R[t] = Rt
         elif tree.node_types[t] == FORGET:
             # has only one child
@@ -267,7 +266,7 @@ class StructureLearner(object):
             Xt = tree.idx_to_name[t]
             logger.debug("check node t = {} with X(t) = {} ".format(t, Xt))
             v0 = list(tree.idx_to_name[child] - Xt)[0]
-            #candidates = {}
+            candidates = {}
             Rt = []
             for (aa, pp, ss) in self.dfs(G, tree, child):
                 a = {}
@@ -278,8 +277,10 @@ class StructureLearner(object):
                     if u not in Xt:
                         continue
                     p[u] = [v for v in pp[u] if v in Xt]
-                #s = ss + self.score(v0, aa[v0])
-                s = ss
+                s = sum([self.score(v, a[v]) for v in Xt])
+                if s != ss + self.score(v0, aa[v0]):
+                    continue
+                #s = ss
                 # if s not in candidates:
                 #     candidates[s] = []
                 # candidates[s].append((a, p, s))

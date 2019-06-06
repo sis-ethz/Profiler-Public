@@ -482,6 +482,13 @@ def add_intro(T, current, to_intro):
 
 
 def nice_tree_decompose(T, node):
+    if node == T.root:
+        # add forget nodes till root
+        to_forget = list(T.idx_to_name[node])[:-1]
+        root = T.add_node(frozenset([]))
+        T, current = add_forget(T, root, to_forget)
+        T.add_directed_edge(current, node)
+        T.set_root_from_node(root)
     nbr = T.get_children(node)
     logger.debug("node {} neighbors: {}".format(node, nbr))
     if len(nbr) > 2:
