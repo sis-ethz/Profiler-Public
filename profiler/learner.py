@@ -38,8 +38,8 @@ class StructureLearner(object):
     def learn(self, data, null_pb, sample_size, **kwargs):
         self.param.update(kwargs)
         self.n = sample_size
-        self.est_cov = self.estimate_covariance(data.values, null_pb, data.columns.values)
-        self.inv_cov = self.estimate_inverse_covariance(self.est_cov.values, data.columns.values)
+        self.cov = self.estimate_covariance(data.values, null_pb, data.columns.values)
+        self.inv_cov, self.est_cov = self.estimate_inverse_covariance(self.cov.values, data.columns.values)
         G = self.recover_moral_graphs(self.inv_cov)
         Gs = G.get_undirected_connected_components()
         Rs = [self.recover_dag(i, G) for i, G in enumerate(Gs)]
@@ -58,7 +58,7 @@ class StructureLearner(object):
         :return: dataframe with attributes as both index and column names
         """
         # estimate inverse_covariance
-        _, inv_cov = graphical_lasso(est_cov, alpha=self.param['sparsity'], mode=self.param['solver'],
+        cov, inv_cov = graphical_lasso(est_cov, alpha=self.param['sparsity'], mode=self.param['solver'],
                                      max_iter=self.param['max_iter'])
         self.s_p = np.count_nonzero(inv_cov)
         # apply threshold
@@ -74,9 +74,10 @@ class StructureLearner(object):
         np.fill_diagonal(inv_cov, self.param['diagonal'])
         # add index/column names
         inv_cov = StructureLearner.get_df(inv_cov, columns)
+        cov = StructureLearner.get_df(cov, columns)
         if self.param['visualize']:
             visualize_heatmap(inv_cov)
-        return inv_cov
+        return inv_cov, cov
 
     def estimate_covariance(self, X, null_pb, columns):
         self.p = X.shape[1]
@@ -119,8 +120,8 @@ class StructureLearner(object):
 
     def construct_dag_from_record(self, R):
         a, p, _, _, _ = R
-        nodes = set(p.keys())
-        for v in p.values():
+        nodes = set(a.keys())
+        for v in a.values():
             nodes = nodes.union(set(v))
         dag = DirectedGraph()
         for n in nodes:
@@ -130,7 +131,7 @@ class StructureLearner(object):
                 dag.add_directed_edge(p, child)
             if self.param['visualize']:
                 score = self.score(child, parents)
-                print("{} -> {} ()".format(", ".join(self.idx_to_col.loc[parents, 'col'].values),
+                print("{} -> {} ({})".format(", ".join(self.idx_to_col.loc[parents, 'col'].values),
                                         self.idx_to_col.loc[child, 'col'], score))
         return dag
 

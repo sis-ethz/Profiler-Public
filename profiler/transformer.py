@@ -43,30 +43,24 @@ def compute_differences_text(env, attr, operators, left, right, embed):
     if env['continuous']:
         df["%s_eq" % attr] = diff / np.nanmax(diff)
     else:
-        df["%s_eq" % attr] = ((diff / np.nanmax(diff)) <= env['tol'])*1
+        df["%s_eq" % attr] = ((diff / np.nanmax(diff)) <= env['tol'])*2-1
         if NEQ in operators:
-            df["%s_neq" % attr] = 1 - df["%s_eq" % attr]
+            df["%s_neq" % attr] = - df["%s_eq" % attr]
 
     # handle null
-    if env['null_policy'] == NULL_EQ:
-        df.iloc[mask, :] = np.ones((len(mask), df.shape[1]))
-    else:
-        df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
+    df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
     return df, len(mask)
 
 
 def compute_differences_categorical(env, attr, operators, left, right):
     df = pd.DataFrame()
     mask = left[(left == env['null']) | (right == env['null'])].index.values
-    df["%s_eq" % attr] = np.equal(left, right)*1
+    df["%s_eq" % attr] = np.equal(left, right)*2-1
     if NEQ in operators:
-        df["%s_neq" % attr] = 1 - df["%s_eq"%attr]
+        df["%s_neq" % attr] = - df["%s_eq"%attr]
 
     # handle null
-    if env['null_policy'] == NULL_EQ:
-        df.iloc[mask, :] = np.ones((len(mask), df.shape[1]))
-    else:
-        df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
+    df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
     return df, len(mask)
 
 
@@ -84,9 +78,9 @@ def compute_differences_numerical(env, attr, operators, left, right):
             lt[diff >= 0] = 0
             df["%s_lt" % attr] = lt
     else:
-        df["%s_eq" % attr] = ((np.abs(diff) / np.nanmax(np.abs(diff))) <= env['tol'])*1
+        df["%s_eq" % attr] = ((np.abs(diff) / np.nanmax(np.abs(diff))) <= env['tol'])*2-1
         if NEQ in operators:
-            df["%s_neq" % attr] = 1 - df["%s_eq"%attr]
+            df["%s_neq" % attr] = - df["%s_eq"%attr]
         if GT in operators:
             df["%s_gt" % attr] = (diff > 0)*1
         if LT in operators:
@@ -94,8 +88,7 @@ def compute_differences_numerical(env, attr, operators, left, right):
 
     # handle null
     mask = left[np.isnan(diff)].index.values
-    if env['null_policy'] == NULL_EQ:
-        df.iloc[mask, :] = np.ones((len(mask), df.shape[1]))
+    df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
     return df, len(mask)
 
 def compute_differences_date(env, attr, operators, left, right):
@@ -112,19 +105,16 @@ def compute_differences_date(env, attr, operators, left, right):
             lt[diff >= 0] = 0
             df["%s_lt" % attr] = lt
     else:
-        df["%s_eq" % attr] = ((np.abs(diff) / np.nanmax(np.abs(diff))) <= env['tol'])*1
+        df["%s_eq" % attr] = ((np.abs(diff) / np.nanmax(np.abs(diff))) <= env['tol'])*2-1
         if NEQ in operators:
-            df["%s_neq" % attr] = 1 - df["%s_eq"%attr]
+            df["%s_neq" % attr] = - df["%s_eq"%attr]
         if GT in operators:
-            df["%s_gt" % attr] = (diff > 0)*1
+            df["%s_gt" % attr] = (diff > 0)*2-1
         if LT in operators:
-            df["%s_lt" % attr] = (diff < 0)*1
+            df["%s_lt" % attr] = (diff < 0)*2-1
     # handle null
     mask = left[np.isnan(diff)].index.values
-    if env['null_policy'] == NULL_EQ:
-        df.iloc[mask, :] = np.ones((len(mask), df.shape[1]))
-    else:
-        df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
+    df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
     return df, len(mask)
 
 
