@@ -107,20 +107,20 @@ class StructureLearner(object):
             print_tree(NTD, NTD.root)
         # step 3: dynamic programming
         self.R = {}
-        R = self.dfs(G, NTD, NTD.root)
-        # # optional: visualize
-        # if self.param['visualize']:
-        #     dag = self.construct_dag_from_record(R[0])
-        #     plot_graph(dag, label=True, directed=True,
-        #                title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
-        return R
+        R = self.dfs(G, NTD, NTD.root)[0]
+        min_score = R[2]
+        # optional: visualize
+        if self.param['visualize']:
+            dag = self.construct_dag_from_record(R[0])
+            plot_graph(dag, label=True, directed=True,
+                       title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
+        return min_score
 
     def construct_dag_from_record(self, R):
         a, p, _ = R
         nodes = set(p.keys())
         for v in p.values():
             nodes = nodes.union(set(v))
-        print(nodes)
         dag = DirectedGraph()
         for n in nodes:
             dag.add_node(self.idx_to_col.loc[n, 'col'], idx=n)
@@ -188,7 +188,7 @@ class StructureLearner(object):
         score = self.est_cov.iloc[j,j] - (np.dot(np.dot(self.est_cov.iloc[j,S].values.reshape(1,-1),
                                           np.linalg.inv(self.est_cov.iloc[S,S].values.reshape(k,k))),
                                           self.est_cov.iloc[S,j].values.reshape(-1,1)))
-        return score
+        return float(score)
 
     def dfs(self, G, tree, t):
         if t in self.R:
