@@ -105,16 +105,15 @@ class StructureLearner(object):
         if self.param['visualize']:
             plot_graph(NTD, label=False, directed=True, title="%d.3 nice tree decomposition"%i)
             print_tree(NTD, NTD.root)
-        return NTD
-        # # step 3: dynamic programming
-        # self.R = {}
-        # R = self.dfs(G, NTD, NTD.root)
+        # step 3: dynamic programming
+        self.R = {}
+        R = self.dfs(G, NTD, NTD.root)
         # # optional: visualize
         # if self.param['visualize']:
         #     dag = self.construct_dag_from_record(R[0])
         #     plot_graph(dag, label=True, directed=True,
         #                title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
-        # return R
+        return R
 
     def construct_dag_from_record(self, R):
         a, p, _ = R
@@ -157,12 +156,13 @@ class StructureLearner(object):
 
     def nice_tree_decompose(self, TD):
         NTD = deepcopy(TD)
-        # set a root with largest bag
+        # set a root with smallest bag
         root = -1
+        min_width = NTD.width + 1 + 1
         for idx in NTD.idx_to_name:
-            if NTD.width+1 == len(NTD.idx_to_name[idx]):
+            if len(NTD.idx_to_name[idx]) < min_width:
+                min_width = len(NTD.idx_to_name[idx])
                 root = idx
-                break
         NTD.set_root_from_node(root)
         # store types
         NTD.node_types = {}
@@ -183,12 +183,11 @@ class StructureLearner(object):
     def score(self, j, S):
         S = list(S)
         if len(S) == 0:
-            return 0
+            return self.est_cov.iloc[j,j]
         k = len(S)
-        score = self.est_cov.iloc[j,j] - (self.est_cov.iloc[j,S].values.reshape(1,-1) *
-                                          np.linalg.inv(self.est_cov.iloc[S,S].values.reshape(k,k)) *
-                                          self.est_cov.iloc[S,j].values.reshape(-1,1))[0][0]
-        #logger.debug("score for {} -> {}: {}".format(S, j, score))
+        score = self.est_cov.iloc[j,j] - (np.dot(np.dot(self.est_cov.iloc[j,S].values.reshape(1,-1),
+                                          np.linalg.inv(self.est_cov.iloc[S,S].values.reshape(k,k))),
+                                          self.est_cov.iloc[S,j].values.reshape(-1,1)))
         return score
 
     def dfs(self, G, tree, t):
@@ -217,7 +216,6 @@ class StructureLearner(object):
             Rt = candidates[min(list(candidates.keys()))]
             logger.debug("R for join node t = {} with X(t) = {} candidate size: {}".format(t, tree.idx_to_name[t],
                                                                                len(tree.idx_to_name[t])))
-            logger.debug("{}".format(Rt))
             self.R[t] = Rt
         elif tree.node_types[t] == INTRO:
             # has only one child
@@ -250,13 +248,13 @@ class StructureLearner(object):
                     #s = ss + self.score(v0, a[v0])
                     # since score does not change, all should have same score
                     Rt.append((a, p, s))
-            #         if s not in candidates:
-            #             candidates[s] = []
-            #         candidates[s].append((a, p, s))
+                    # if s not in candidates:
+                    #     candidates[s] = []
+                    # candidates[s].append((a, p, s))
             # if len(candidates.keys()) == 0:
             #     logger.info("check: {}".format(union_and_check_cycle([pp, p1, p2],debug=True)))
             #     raise Exception("No DAG found")
-            # Rt = candidates[min(list(candidates.keys()))]
+            #Rt = candidates[min(list(candidates.keys()))]
             logger.debug("R for intro node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
             # logger.debug("{}".format(Rt))
             self.R[t] = Rt
@@ -267,28 +265,26 @@ class StructureLearner(object):
             logger.debug("check node t = {} with X(t) = {} ".format(t, Xt))
             v0 = list(tree.idx_to_name[child] - Xt)[0]
             candidates = {}
-            Rt = []
             for (aa, pp, ss) in self.dfs(G, tree, child):
                 a = {}
                 for v in Xt:
                     a[v] = set(aa[v])
-                p = {}
+                p1 = {}
                 for u in pp:
                     if u not in Xt:
                         continue
-                    p[u] = [v for v in pp[u] if v in Xt]
-                s = sum([self.score(v, a[v]) for v in Xt])
-                if s != ss + self.score(v0, aa[v0]):
+                    p1[u] = [v for v in pp[u] if v in Xt]
+                p = union_and_check_cycle([pp, p1])
+                if p is None:
                     continue
-                #s = ss
-                # if s not in candidates:
-                #     candidates[s] = []
-                # candidates[s].append((a, p, s))
-                Rt.append((a, p, s))
-            logger.debug("{}".format(Rt))
-            #Rt = candidates[min(list(candidates.keys()))]
+                s = ss + self.score(v0, aa[v0])
+                if s not in candidates:
+                    candidates[s] = []
+                candidates[s].append((a, p, s))
+            if len(candidates.keys()) == 0:
+                raise Exception("No DAG found")
+            Rt = candidates[min(list(candidates.keys()))]
             logger.debug("R for forget node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
-            logger.debug("{}".format(Rt))
             self.R[t] = Rt
         else:
             # leaf
@@ -298,10 +294,9 @@ class StructureLearner(object):
             v = list(Xt)[0]
             for P in find_all_subsets(set(G.get_neighbors(v))):
                 a = {v: set(P)}
-                s = self.score(list(Xt)[0], P)
+                #s = sum([self.score(u, []) for u in self.col_to_idx.idx.values])
+                s = 0
                 p = {}
-                for u in P:
-                    p[u] = [v]
                 if s not in candidates:
                     candidates[s] = []
                 candidates[s].append((a, p, s))
@@ -309,7 +304,6 @@ class StructureLearner(object):
             Rt = candidates[min(list(candidates.keys()))]
             self.R[t] = Rt
             logger.debug("R for leaf node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
-            logger.debug("{}".format(Rt))
         return Rt
 
 def union_and_check_cycle(sets, debug=False):
