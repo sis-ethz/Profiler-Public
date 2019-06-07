@@ -229,8 +229,9 @@ class Session(object):
 
     def learn_structure(self, **kwargs):
         self.timer.time_start('Learn Structure')
-        self.struct_engine.learn(self.training_data, self.null_pb, self.sample_size, **kwargs)
+        results = self.struct_engine.learn(self.training_data, self.null_pb, self.sample_size, **kwargs)
         self.timer.time_end('Learn Structure')
+        return results
 
     # def get_fds(self, **kwargs):
     #     self.timer.time_start('Obtain FDs')

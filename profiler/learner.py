@@ -109,15 +109,16 @@ class StructureLearner(object):
         self.R = {}
         R = self.dfs(G, NTD, NTD.root)[0]
         min_score = R[2]
+        r = self.find_record(NTD, NTD.root, 0)
         # optional: visualize
-        # if self.param['visualize']:
-        #     dag = self.construct_dag_from_record(R)
-        #     plot_graph(dag, label=True, directed=True,
-        #                title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
-        return min_score
+        if self.param['visualize']:
+            dag = self.construct_dag_from_record(r)
+            plot_graph(dag, label=True, directed=True,
+                       title="%d.4 1 possible dag (score=%.4f)"%(i, min_score))
+        return r, min_score
 
     def construct_dag_from_record(self, R):
-        a, p, _ = R
+        a, p, _, _, _ = R
         nodes = set(p.keys())
         for v in p.values():
             nodes = nodes.union(set(v))
@@ -170,15 +171,22 @@ class StructureLearner(object):
         NTD = nice_tree_decompose(NTD, root)
         return NTD
 
-    """
-    def tree_decompose(self, G):
-        # ordering = get_min_degree_ordering(G)
-        # bags, T = perm_to_tree_decomp(G, ordering)
-        # T.width = max([len(bags[i]) for i in bags]) - 1
-        # # set bags
-        # T.idx_to_name = bags
-        return TD
-    """
+    def find_record(self, NTD, node, from_idx):
+        # find R with from_idx
+        for r in self.R[node]:
+            if r[3] == from_idx:
+                break
+        _, _, score, _, from_idx = r
+        if score == 0:
+            # find the record contain all nodes
+            return r
+        children = self.NTD.get_children(node)
+        if len(children) == 1:
+            return self.find_record(NTD, children[0], from_idx)
+        else:
+            r1 = self.find_record(NTD, children[0], from_idx)
+            r2 = self.find_record(NTD, children[1], from_idx)
+            return (r1, r2)
 
     def score(self, j, S):
         S = list(S)
@@ -199,8 +207,9 @@ class StructureLearner(object):
             candidates = {}
             # has children t1 and t2
             t1, t2 = tree.get_children(t)
-            for (a1, p1, s1) in self.dfs(G, tree, t1):
-                for (a2, p2, s2) in self.dfs(G, tree, t2):
+            i = 0
+            for (a1, p1, s1, idx1, _) in self.dfs(G, tree, t1):
+                for (a2, p2, s2, idx2, _) in self.dfs(G, tree, t2):
                     if not is_eq_dict(a1, a2):
                         continue
                     a = deepcopy(a1)
@@ -210,7 +219,8 @@ class StructureLearner(object):
                     s = s1 + s2
                     if s not in candidates:
                         candidates[s] = []
-                    candidates[s].append((a, p, s))
+                    candidates[s].append((a, p, s, i, (idx1, idx2)))
+                    i += 1
             if len(candidates.keys()) == 0:
                 raise Exception("No DAG found")
             Rt = candidates[min(list(candidates.keys()))]
@@ -226,8 +236,9 @@ class StructureLearner(object):
             Rt = []
             #candidates = {}
             logger.debug("check node t = {} with X(t) = {} ".format(t, Xt))
+            i = 0
             for P in find_all_subsets(set(G.get_neighbors(v0))):
-                for (aa, pp, ss) in self.dfs(G, tree, child):
+                for (aa, pp, ss, idx, _) in self.dfs(G, tree, child):
                     # parent sets
                     a = {}
                     a[v0] = set(P)
@@ -247,7 +258,8 @@ class StructureLearner(object):
                     s = ss
                     #s = ss + self.score(v0, a[v0])
                     # since score does not change, all should have same score
-                    Rt.append((a, p, s))
+                    Rt.append((a, p, s, i, idx))
+                    i += 1
                     # if s not in candidates:
                     #     candidates[s] = []
                     # candidates[s].append((a, p, s))
@@ -265,7 +277,8 @@ class StructureLearner(object):
             logger.debug("check node t = {} with X(t) = {} ".format(t, Xt))
             v0 = list(tree.idx_to_name[child] - Xt)[0]
             candidates = {}
-            for (aa, pp, ss) in self.dfs(G, tree, child):
+            i = 0
+            for (aa, pp, ss, idx, _) in self.dfs(G, tree, child):
                 a = {}
                 for v in Xt:
                     a[v] = set(aa[v])
@@ -277,7 +290,8 @@ class StructureLearner(object):
                 s = ss + self.score(v0, aa[v0])
                 if s not in candidates:
                     candidates[s] = []
-                candidates[s].append((a, p, s))
+                candidates[s].append((a, p, s, i, idx))
+                i += 1
             if len(candidates.keys()) == 0:
                 raise Exception("No DAG found")
             Rt = candidates[min(list(candidates.keys()))]
@@ -289,14 +303,14 @@ class StructureLearner(object):
             candidates = {}
             Xt = tree.idx_to_name[t]
             v = list(Xt)[0]
-            for P in find_all_subsets(set(G.get_neighbors(v))):
+            for i, P in enumerate(find_all_subsets(set(G.get_neighbors(v)))):
                 a = {v: set(P)}
                 #s = sum([self.score(u, []) for u in self.col_to_idx.idx.values])
                 s = 0
                 p = {}
                 if s not in candidates:
                     candidates[s] = []
-                candidates[s].append((a, p, s))
+                candidates[s].append((a, p, s, i, -1))
             # get minimal-score records
             Rt = candidates[min(list(candidates.keys()))]
             self.R[t] = Rt
@@ -351,6 +365,7 @@ def union_and_check_cycle(sets, debug=False):
         logger.debug("merged: {}".format(s0))
     return s0
 
+
 def is_eq_dict(dic1, dic2):
     if len(dic1.keys()) != len(dic2.keys()):
         return False
@@ -360,6 +375,7 @@ def is_eq_dict(dic1, dic2):
         if dic1[k1] != dic2[k1]:
             return False
     return True
+
 
 def plot_graph(graph, label=False, directed=False, circle=False, title=None):
     import networkx as nx
@@ -392,3 +408,5 @@ def print_tree(T, node, level=0):
     print("{}[{}]{}:{}".format("--"*level, node, T.node_types[node], T.idx_to_name[node]))
     for c in T.get_children(node):
         print_tree(T, c, level+1)
+
+
