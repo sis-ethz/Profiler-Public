@@ -110,10 +110,10 @@ class StructureLearner(object):
         R = self.dfs(G, NTD, NTD.root)[0]
         min_score = R[2]
         # optional: visualize
-        if self.param['visualize']:
-            dag = self.construct_dag_from_record(R[0])
-            plot_graph(dag, label=True, directed=True,
-                       title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
+        # if self.param['visualize']:
+        #     dag = self.construct_dag_from_record(R)
+        #     plot_graph(dag, label=True, directed=True,
+        #                title="%d.4 1 possible dag out of %d variations (score=%.4f)"%(i, len(R), R[0][2]))
         return min_score
 
     def construct_dag_from_record(self, R):
@@ -269,14 +269,11 @@ class StructureLearner(object):
                 a = {}
                 for v in Xt:
                     a[v] = set(aa[v])
-                p1 = {}
+                p = {}
                 for u in pp:
                     if u not in Xt:
                         continue
-                    p1[u] = [v for v in pp[u] if v in Xt]
-                p = union_and_check_cycle([pp, p1])
-                if p is None:
-                    continue
+                    p[u] = [v for v in pp[u] if v in Xt]
                 s = ss + self.score(v0, aa[v0])
                 if s not in candidates:
                     candidates[s] = []
