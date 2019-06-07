@@ -7,7 +7,7 @@ import pandas as pd
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class StructureLearner(object):
@@ -129,8 +129,9 @@ class StructureLearner(object):
             for p in parents:
                 dag.add_directed_edge(p, child)
             if self.param['visualize']:
-                print("[{}] -> {}".format(", ".join(self.idx_to_col.loc[parents, 'col'].values),
-                                        self.idx_to_col.loc[child, 'col']))
+                score = self.score(child, parents)
+                print("{} -> {} ()".format(", ".join(self.idx_to_col.loc[parents, 'col'].values),
+                                        self.idx_to_col.loc[child, 'col'], score))
         return dag
 
     def recover_moral_graphs(self, inv_cov):
@@ -140,8 +141,6 @@ class StructureLearner(object):
         self.col_to_idx = idx_col.set_index('col')
         self.idx_to_col = idx_col.set_index('idx')
         for i, attr in enumerate(inv_cov):
-            if i == 0:
-                continue
             # do not consider a_op1 -> a_op2
             columns = np.array([c for c in inv_cov.columns.values if "_".join(attr.split('_')[0]) not in c])
             neighbors = columns[(inv_cov.loc[attr, columns]).abs() > 0]
@@ -180,7 +179,7 @@ class StructureLearner(object):
         if score == 0:
             # find the record contain all nodes
             return r
-        children = self.NTD.get_children(node)
+        children = NTD.get_children(node)
         if len(children) == 1:
             return self.find_record(NTD, children[0], from_idx)
         else:
@@ -256,19 +255,10 @@ class StructureLearner(object):
                     if p is None:
                         continue
                     s = ss
-                    #s = ss + self.score(v0, a[v0])
                     # since score does not change, all should have same score
                     Rt.append((a, p, s, i, idx))
                     i += 1
-                    # if s not in candidates:
-                    #     candidates[s] = []
-                    # candidates[s].append((a, p, s))
-            # if len(candidates.keys()) == 0:
-            #     logger.info("check: {}".format(union_and_check_cycle([pp, p1, p2],debug=True)))
-            #     raise Exception("No DAG found")
-            #Rt = candidates[min(list(candidates.keys()))]
             logger.debug("R for intro node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
-            # logger.debug("{}".format(Rt))
             self.R[t] = Rt
         elif tree.node_types[t] == FORGET:
             # has only one child
@@ -305,7 +295,6 @@ class StructureLearner(object):
             v = list(Xt)[0]
             for i, P in enumerate(find_all_subsets(set(G.get_neighbors(v)))):
                 a = {v: set(P)}
-                #s = sum([self.score(u, []) for u in self.col_to_idx.idx.values])
                 s = 0
                 p = {}
                 if s not in candidates:
