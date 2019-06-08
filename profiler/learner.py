@@ -12,7 +12,8 @@ logger.setLevel(logging.INFO)
 
 class StructureLearner(object):
 
-    def __init__(self, env, ds):
+    def __init__(self, session, env, ds):
+        self.session = session
         self.env = env
         self.ds = ds
         self.param = {
@@ -23,8 +24,8 @@ class StructureLearner(object):
             'threshold': -1,
             'visualize': True,
             'diagonal': 0,
-            'take_abs': False,
-            'take_neg': True,
+            'take_abs': True,
+            'take_neg': False,
         }
         self.width = -1
         self.Gs = None
@@ -35,11 +36,10 @@ class StructureLearner(object):
         self.s_p = -1
         self.R = {}
 
-    def learn(self, data, null_pb, sample_size, **kwargs):
+    def learn(self, **kwargs):
         self.param.update(kwargs)
-        self.n = sample_size
-        self.cov = self.estimate_covariance(data.values, null_pb, data.columns.values)
-        self.inv_cov, self.est_cov = self.estimate_inverse_covariance(self.cov.values, data.columns.values)
+        self.cov = self.estimate_covariance()
+        self.inv_cov, self.est_cov = self.estimate_inverse_covariance(self.cov.values)
         G = self.recover_moral_graphs(self.inv_cov)
         Gs = G.get_undirected_connected_components()
         Rs = [self.recover_dag(i, G) for i, G in enumerate(Gs)]
@@ -51,35 +51,39 @@ class StructureLearner(object):
         df.index = columns
         return df
 
-    def estimate_inverse_covariance(self, est_cov, columns):
+    def estimate_inverse_covariance(self, cov):
         """
         estimate inverse covariance matrix
         :param data: dataframe
         :return: dataframe with attributes as both index and column names
         """
         # estimate inverse_covariance
-        cov, inv_cov = graphical_lasso(est_cov, alpha=self.param['sparsity'], mode=self.param['solver'],
-                                     max_iter=self.param['max_iter'])
+        columns = self.session.training_data.columns
+        est_cov, inv_cov = graphical_lasso(cov, alpha=self.param['sparsity'], mode=self.param['solver'],
+                                           max_iter=self.param['max_iter'])
         self.s_p = np.count_nonzero(inv_cov)
         # apply threshold
-        if self.param['take_neg']:
-            inv_cov = - inv_cov
-        if self.param['take_abs']:
-            inv_cov = np.abs(inv_cov)
         if self.param['threshold'] == -1:
-            self.param['threshold'] = np.sqrt(np.log(self.p)*(self.s_p)/self.n)
+            self.param['threshold'] = np.sqrt(np.log(self.p)*(self.s_p)/self.session.sample_size)
         logger.info("use threshold %.4f" % self.param['threshold'])
-        inv_cov[inv_cov < self.param['threshold']] = 0
+        mask = inv_cov
+        if self.param['take_neg']:
+            mask = - inv_cov
+        if self.param['take_abs']:
+            mask = np.abs(inv_cov)
+        inv_cov[mask < self.param['threshold']] = 0
         # set diagonal to zero
-        np.fill_diagonal(inv_cov, self.param['diagonal'])
+        # np.fill_diagonal(inv_cov, self.param['diagonal'])
         # add index/column names
         inv_cov = StructureLearner.get_df(inv_cov, columns)
-        cov = StructureLearner.get_df(cov, columns)
+        est_cov = StructureLearner.get_df(est_cov, columns)
         if self.param['visualize']:
             visualize_heatmap(inv_cov)
-        return inv_cov, cov
+        return inv_cov, est_cov
 
-    def estimate_covariance(self, X, null_pb, columns):
+    def estimate_covariance(self):
+        X = self.session.training_data.values
+        columns = self.session.training_data.columns
         self.p = X.shape[1]
         # centralize data
         X = X - np.mean(X, axis=0)
@@ -87,11 +91,11 @@ class StructureLearner(object):
         #X = X / np.linalg.norm(X, axis=0)
         # with missing value
         cov = np.dot(X.T, X) / X.shape[0]
-        self.cov = cov
-        m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-null_pb))
-        np.fill_diagonal(m, 1/(1-null_pb))
+        m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-self.session.null_pb))
+        np.fill_diagonal(m, 1/(1-self.session.null_pb))
         est_cov = np.multiply(cov, m)
         est_cov = StructureLearner.get_df(est_cov, columns)
+        self.cov = est_cov
         return est_cov
 
     def recover_dag(self, i, G):
@@ -306,6 +310,7 @@ class StructureLearner(object):
             self.R[t] = Rt
             logger.debug("R for leaf node t = {} with X(t) = {} candidate size: {}".format(t, Xt, len(Rt)))
         return Rt
+
 
 def union_and_check_cycle(sets, debug=False):
     s0 = None

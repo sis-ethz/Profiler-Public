@@ -191,7 +191,7 @@ class Session(object):
         self.timer = GlobalTimer()
         self.ds = Dataset(name, env)
         self.trans_engine = TransformEngine(env, self.ds)
-        self.struct_engine = StructureLearner(env, self.ds)
+        self.struct_engine = StructureLearner(self, env, self.ds)
         #self.eval_engine = EvalEngine(env, self.ds)
 
     def load_data(self, name="", src=FILE, fpath='', df=None, **kwargs):
@@ -229,7 +229,7 @@ class Session(object):
 
     def learn_structure(self, **kwargs):
         self.timer.time_start('Learn Structure')
-        results = self.struct_engine.learn(self.training_data, self.null_pb, self.sample_size, **kwargs)
+        results = self.struct_engine.learn(**kwargs)
         self.timer.time_end('Learn Structure')
         return results
 
