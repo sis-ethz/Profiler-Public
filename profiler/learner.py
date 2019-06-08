@@ -68,7 +68,10 @@ class StructureLearner(object):
         logger.info("use threshold %.4f" % self.param['threshold'])
         mask = inv_cov
         if self.param['take_neg']:
+            diag = inv_cov.diagonal()
+            diag_idx = np.diag_indices(inv_cov.shape[0])
             mask = - inv_cov
+            mask[diag_idx] = diag
         if self.param['take_abs']:
             mask = np.abs(inv_cov)
         inv_cov[mask < self.param['threshold']] = 0
@@ -147,7 +150,7 @@ class StructureLearner(object):
         self.idx_to_col = idx_col.set_index('idx')
         for i, attr in enumerate(inv_cov):
             # do not consider a_op1 -> a_op2
-            columns = np.array([c for c in inv_cov.columns.values if "_".join(attr.split('_')[0]) not in c])
+            columns = np.array([c for c in inv_cov.columns.values if "_".join(attr.split('_')[:-1]) not in c])
             neighbors = columns[(inv_cov.loc[attr, columns]).abs() > 0]
             if len(neighbors) == 0:
                 continue
