@@ -127,6 +127,9 @@ class TransformEngine(object):
     def __init__(self, env, ds):
         self.env = env
         self.ds = ds
+        self.training_data = None
+        self.sample_size = -1
+        self.null_pb = 0
         self.embed = None
 
     def check_singular(self, df):
@@ -149,44 +152,60 @@ class TransformEngine(object):
         return multiplier
 
     def create_training_data(self, multiplier=None, embed=None, difference=True):
+
         if not difference:
             data = self.check_singular(self.ds.df)
-            null_pb = np.count_nonzero(np.isnan(data)) / (data.shape[0] * data.shape[1])
-            return data, null_pb, data.shape[0]
+            self.null_pb = np.count_nonzero(np.isnan(data)) / (data.shape[0] * data.shape[1])
+            self.sample_size = data.shape[0]
+            self.training_data = data
 
         self.embed = embed
 
-        # handle nulls
-        self.ds.replace_null()
-        if self.env['null_policy'] == SKIP:
-            self.ds.df.dropna(how="any", axis=0, inplace=True)
+        self.handle_nulls()
 
-        if multiplier is None:
-            multiplier = self.estimate_sample_size()
-        n = multiplier * self.ds.df.shape[0]
+        multiplier = self.get_multiplier(multiplier)
 
         logger.info("Draw Pairs")
         left, right = self.create_pair_data(multiplier=multiplier)
+
         logger.info("Computing Differences")
+        data_count = self.compute_differences(left, right)
+        data = pd.concat([attr[0] for attr in data_count], axis=1)
+
+        # turn data into non-singualr matrix by dropping columns
+        self.training_data, drop_cols = self.check_singular(data)
+
+        # obtain count of nulls
+        self.compute_null_pb(data_count, drop_cols)
+
+    def compute_differences(self, left, right):
         if self.env['workers'] < 1:
             data_count = [compute_differences(attr, self.ds.dtypes[attr], self.env, self.ds.operators[attr], left[attr],
                                         right[attr], self.embed) for attr in self.ds.field]
         else:
             pool = ThreadPoolExecutor(self.env['workers'])
             data_count = list(pool.map(lambda attr: compute_differences(attr, self.ds.dtypes[attr], self.env,
-                                                                  self.ds.operators[attr], left[attr],
-                                                                  right[attr], self.embed), self.ds.field))
-        data = pd.concat([attr[0] for attr in data_count], axis=1)
+                                                                        self.ds.operators[attr], left[attr],
+                                                                        right[attr], self.embed), self.ds.field))
+        return data_count
 
-        # turn data into nonsingualr matrix by dropping columns
-        data, drop_cols = self.check_singular(data)
-
-        # obtain count of nulls
+    def compute_null_pb(self, data_count, drop_cols):
         null_counts = np.sum([attr[1] for i, attr in enumerate(data_count) if self.ds.df.columns.values[i] not in drop_cols])
-        null_pb = null_counts / (data.shape[0] * len(self.ds.field))
-        logger.info("estimated missing data probability in training data is %.4f" % null_pb)
+        self.null_pb = null_counts / (self.training_data.shape[0] * len(self.ds.field))
+        logger.info("estimated missing data probability in training data is %.4f" % self.null_pb)
 
-        return data, null_pb, n
+    def get_multiplier(self, multiplier):
+        if multiplier is None:
+            multiplier = self.estimate_sample_size()
+        # conservative sample size, did not multiply by number of attributes since there may have repeated samples
+        self.sample_size = multiplier * self.ds.df.shape[0]
+        return multiplier
+
+    def handle_nulls(self):
+        # handle nulls
+        self.ds.replace_null()
+        if self.env['null_policy'] == SKIP:
+            self.ds.df.dropna(how="any", axis=0, inplace=True)
 
     def create_pair_data(self, multiplier):
         multiplier = max(1, int(np.ceil(multiplier/self.ds.field.shape[0])))

@@ -18,7 +18,7 @@ def get_cos(vec):
 
 class SIF(object):
 
-    def __init__(self, env, config, data, path):
+    def __init__(self, env, config, data, attr):
         """
         :param corpus:
         :param dim:
@@ -26,38 +26,38 @@ class SIF(object):
         """
         self.env = env
         self.config = config
-        self.vec, self.vocab = self.load_vocab(data, path)
+        self.vec, self.vocab = self.load_vocab(data, attr)
 
-
-    def load_vocab(self, data, path):
+    def load_vocab(self, data, attr):
         if not self.config['load']:
             # build vocab
-            vec, vocab = self.build_vocab(data, path)
+            vec, vocab = self.build_vocab(data, attr)
         else:
+            path = os.path.join(self.config['path'], attr)
             vec = np.load(path+'vec.npy', allow_pickle=True)
             unique_cells = np.load(path+'vocab.npy', allow_pickle=True)
             vocab = pd.DataFrame(data=unique_cells, columns=['word']).reset_index().set_index('word')
         return vec, vocab
 
-    def build_vocab(self, data, path):
+    def build_vocab(self, data, attr):
         # tokenize cell
-        logger.info('tokenize cell')
+        logger.info('[%s] tokenize cell'%attr)
         corpus = [self.config['tokenizer'](i) for i in data]
         max_length = max([len(s) for s in corpus])
 
         # train language model
-        logger.info('train language model')
+        logger.info('[%s] train language model'%attr)
         wv = LocalFasttextModel(self.env, self.config, corpus)
 
         # compute weights
-        logger.info('compute weights')
+        logger.info('[%s] compute weights'%attr)
         all_words = np.hstack(corpus)
         unique, counts = np.unique(all_words, return_counts=True)
         freq = counts / len(all_words)
         weight = self.config['a'] / (self.config['a'] + freq)
 
         # obtain word vector
-        logger.info('create vector map')
+        logger.info('[%s] create vector map'%attr)
         vec = wv.get_array_vectors(unique)
         word_vocab = pd.DataFrame(list(zip(unique, list(range(len(corpus))))),
                                   columns=['word', 'idx']).set_index('word')
@@ -82,7 +82,8 @@ class SIF(object):
 
         # (optional) save model
         if self.config['save']:
-            logger.info('save vec and vocab')
+            path = os.path.join(self.config['path'], attr)
+            logger.info('[%s] save vec and vocab'%attr)
             np.save(path+'vec', vec)
             np.save(path+'vocab', unique_cells)
         return vec, vocab
@@ -147,14 +148,12 @@ class EmbeddingEngine(object):
             to_embed = self.ds.to_embed()
             if self.env['workers'] > 1:
                 pool = ThreadPoolExecutor(self.env['workers'])
-                for i, model in enumerate(pool.map(lambda attr: SIF(self.env, self.param, self.ds.df[attr],
-                                                                    path=os.path.join(self.param['path']+attr)),
+                for i, model in enumerate(pool.map(lambda attr: SIF(self.env, self.param, self.ds.df[attr], attr=attr),
                                                    to_embed)):
                     self.models[to_embed[i]] = model
             else:
                 for attr in to_embed:
-                    self.models[attr] = SIF(self.env, self.param, self.ds.df[attr],
-                                            path=os.path.join(self.param['path']+attr))
+                    self.models[attr] = SIF(self.env, self.param, self.ds.df[attr], attr=attr)
 
         elif self.param['type'] == PRETRAINED_EMBEDDING:
             raise Exception("NOT IMPLEMENTED")
@@ -166,7 +165,3 @@ class EmbeddingEngine(object):
         if self.embedding_type != ATTRIBUTE_EMBEDDING:
             return self.models[0].get_array_vectors(array)
         return self.models[attr].get_embedding(array)
-
-
-
-

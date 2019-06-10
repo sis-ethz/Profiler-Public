@@ -180,7 +180,6 @@ class Session(object):
 
         # Initialize random seeds.
         random.seed(env['seed'])
-        #torch.manual_seed(env['seed'])
         np.random.seed(seed=env['seed'])
 
         # Initialize members
@@ -194,7 +193,7 @@ class Session(object):
         self.struct_engine = StructureLearner(self, env, self.ds)
         #self.eval_engine = EvalEngine(env, self.ds)
 
-    def load_data(self, name="", src=FILE, fpath='', df=None, **kwargs):
+    def load_data(self, name="", src=FILE, fpath='', df=None, check_param=False, **kwargs):
         """
         load_data takes the filepath to a CSV file to load as the initial dataset.
         :param name: (str) name to initialize dataset with.
@@ -203,7 +202,7 @@ class Session(object):
         :param kwargs: 'na_values', 'header', 'dropcol', 'encoding', 'nan' (representation for null values)
         """
         self.timer.time_start('Load Data')
-        self.ds.load_data(name, src, fpath, df, **kwargs)
+        self.ds.load_data(name, src, fpath, df, check_param, **kwargs)
         self.timer.time_end('Load Data')
 
     def change_operators(self, names, ops):
@@ -223,8 +222,7 @@ class Session(object):
 
     def load_training_data(self, multiplier=None):
         self.timer.time_start('Create Training Data')
-        self.training_data, self.null_pb, self.sample_size = self.trans_engine.create_training_data(
-            multiplier=multiplier, embed=self.embed)
+        self.trans_engine.create_training_data(multiplier=multiplier, embed=self.embed)
         self.timer.time_end('Create Training Data')
 
     def learn_structure(self, **kwargs):
@@ -233,7 +231,17 @@ class Session(object):
         self.timer.time_end('Learn Structure')
         return results
 
-    # def get_fds(self, **kwargs):
-    #     self.timer.time_start('Obtain FDs')
-    #     fds = self.struct_engine.get_fds(**kwargs)
-    #     self.timer.time_end('Obtain FDs')
+    def get_dependencies(self, heatmap=None, score="training_data_vio_ratio"):
+        self.timer.time_start('Get Dependencies')
+        results = self.struct_engine.get_dependencies(heatmap=heatmap, score=score)
+        self.timer.time_end('Get Dependencies')
+        return results
+
+    def visualize_covariance(self):
+        self.struct_engine.visualize_covariance()
+
+    def visualize_inverse_covariance(self):
+        self.struct_engine.visualize_inverse_covariance()
+
+    def visualize_autoregression(self):
+        self.struct_engine.visualize_autoregression()

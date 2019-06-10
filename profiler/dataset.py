@@ -19,18 +19,22 @@ class Dataset(object):
         self.dtypes = None
         self.operators = {}
 
-    def load_data(self, name, src, fpath, df, **kwargs):
+    def load_data(self, name, src, fpath, df, check_param, **kwargs):
         param = {
             'na_values': {"?", "", "None", "none", "nan", "NaN", "unknown"},
             'sep': ',',
             'header': 'infer',
             'dropcol': None,
+            'dropna': False,
             'encoding': 'utf-8',
             'normalize': True,
             'min_categories_for_embedding': 10,
         }
         param.update(kwargs)
         setattr(self, 'name', name)
+
+        if check_param:
+            logger.info("parameters used for data loading:\n {}".format(param))
 
         if src == FILE:
             if fpath is None:
@@ -40,7 +44,7 @@ class Dataset(object):
             # Normalize the dataframe: drop null columns, convert to lowercase strings, and strip whitespaces.
             for attr in self.df.columns.values:
                 if self.df[attr].isnull().all():
-                    logging.warning("Dropping the following null column from the dataset: '%s'", attr)
+                    logger.warning("Dropping the following null column from the dataset: '%s'", attr)
                     self.df.drop(labels=[attr], axis=1, inplace=True)
                     continue
         elif src == DF:
@@ -51,11 +55,11 @@ class Dataset(object):
             raise Exception("Not Implemented")
 
         if param['normalize']:
-            self.normalize()
+            self.normalize(param['dropcol'], param['dropna'])
 
         self.infer_column_types(param['min_categories_for_embedding'])
 
-    def normalize(self):
+    def normalize(self, dropcol, dropna):
         """
         drop null columns, convert to lowercase strings, and strip whitespaces
         :param df:
@@ -63,6 +67,14 @@ class Dataset(object):
         """
         # drop empty columns
         self.df.dropna(axis=1, how='all', inplace=True)
+
+        # optional drop columns
+        if dropcol is not None:
+            self.df.drop(dropcol, axis=1, inplace=True)
+
+        # optional drop null records
+        if dropna:
+            self.df.dropna(axis=0, how='any', inplace=True)
 
         for i, t in enumerate(self.df.dtypes):
             # strip whitespaces, and convert to lowercase

@@ -1,8 +1,12 @@
 from sklearn.covariance import graphical_lasso
 from profiler.utility import find_all_subsets, visualize_heatmap
+from sksparse.cholmod import cholesky, analyze
+from itertools import permutations
+from scipy import sparse
+from tqdm import tqdm
+import pandas as pd
 from copy import deepcopy
 from profiler.graph import *
-import pandas as pd
 
 
 logging.basicConfig()
@@ -23,14 +27,14 @@ class StructureLearner(object):
             'lower_triangular': 0,
             'threshold': -1,
             'visualize': True,
-            'diagonal': 0,
-            'take_abs': True,
             'take_neg': False,
         }
         self.width = -1
-        self.Gs = None
-        self.idx = None
+        self.cov = None
+        self.inv_cov = None
+        self.Bs = None
         self.B = None
+        self.idx = None
         self.p = -1
         self.n = -1
         self.s_p = -1
@@ -39,17 +43,114 @@ class StructureLearner(object):
     def learn(self, **kwargs):
         self.param.update(kwargs)
         self.cov = self.estimate_covariance()
+        self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
+        self.B = self.cholesky_decompose(self.inv_cov)
+        return self.B
+
+    def learn_separate(self, **kwargs):
+        self.param.update(kwargs)
+        self.cov = self.estimate_covariance()
+        self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
+        G = pf.session.struct_engine.recover_moral_graphs(self.inv_cov)
+        Gs = G.get_undirected_connected_components()
+        self.Bs = [self.cholesky_decompose(self.inv_cov.iloc[list(g.idx_to_name.keys()),
+                                                             list(g.idx_to_name.keys())]) for g in Gs]
+        return Bs
+
+    def learn_dp(self, **kwargs):
+        """
+        Loh's algorithm
+        1. inverse covariance estimation
+        2. tree decomposition
+        3. nice tree decomposition
+        4. dynamic programming to find dag with minimal score
+        :param kwargs:
+        :return:
+        """
+        self.param.update(kwargs)
+        self.cov = self.estimate_covariance()
         self.inv_cov, self.est_cov = self.estimate_inverse_covariance(self.cov.values)
         G = self.recover_moral_graphs(self.inv_cov)
         Gs = G.get_undirected_connected_components()
         Rs = [self.recover_dag(i, G) for i, G in enumerate(Gs)]
+
         return Rs
+
+    def visualize_inverse_covariance(self):
+        visualize_heatmap(self.inv_cov, title="Inverse Covariance Matrix")
+
+    def visualize_covariance(self):
+        visualize_heatmap(self.cov, title="Covariance Matrix")
+
+    def visualize_autoregression(self):
+        if self.B is not None:
+            visualize_heatmap(self.B, title="Autoregression Matrix")
+        else:
+            for i, B in enumerate(self.Bs):
+                visualize_heatmap(B, title="Autoregression Matrix (Part %d)"%(i+1))
+
+    def training_data_violation(self, pair):
+        left, right = pair
+        stat = self.session.trans_engine.training_data.reset_index().groupby(list(left)+[right])['index'].count()
+        idx = list([1.0]*len(left))
+        pos_idx = tuple(idx + [1.0])
+        neg_idx = tuple(idx + [0.0])
+        if pos_idx not in stat.index:
+            return 1, stat
+        if neg_idx not in stat.index:
+            return 0, stat
+        agree = stat.loc[pos_idx]
+        disagree = stat.loc[neg_idx]
+        ratio = disagree / float(agree+disagree)
+        return ratio, stat
+
+    def get_dependencies(self, heatmap, score):
+
+        def get_dependencies_helper(U_hat, s_func):
+            parent_sets = {}
+            for i, attr in enumerate(U_hat):
+                columns = U_hat.columns.values[0:i]
+                parents = columns[U_hat.iloc[i, 0:i] != 0]
+                parent_sets[attr] = parents
+                if len(parents) > 0:
+                    s, _ = s_func((parents, attr))
+                    print("{} -> {} ({})".format(",".join(parents), attr, s))
+            return parent_sets
+
+        if score == "training_data_vio_ratio":
+            scoring_func = self.training_data_violation
+        else:
+            scoring_func = (lambda x: "n/a")
+
+        if heatmap is None:
+            if self.B is not None:
+                parent_sets = get_dependencies_helper(self.B, scoring_func)
+            else:
+                parent_sets = {}
+                for B in self.Bs:
+                    parent_sets.update(get_dependencies_helper(B, scoring_func))
+        else:
+            parent_sets = get_dependencies_helper(heatmap, scoring_func)
+        return parent_sets
+
 
     @staticmethod
     def get_df(matrix, columns):
         df = pd.DataFrame(data=matrix, columns=columns)
         df.index = columns
         return df
+
+    def cholesky_decompose(self, inv_cov):
+        # cholesky decomposition of invcov
+        A = sparse.csc_matrix(inv_cov.values)
+        factor = analyze(A)
+        perm = factor.P()
+        mat = inv_cov.iloc[perm, perm]
+        A = sparse.csc_matrix(mat.values)
+        factor = cholesky(A)
+        U = factor.L_D()[0].toarray()
+        U_hat = StructureLearner.get_df(U, inv_cov.columns.values[perm])
+        return U_hat
 
     def estimate_inverse_covariance(self, cov):
         """
@@ -58,44 +159,37 @@ class StructureLearner(object):
         :return: dataframe with attributes as both index and column names
         """
         # estimate inverse_covariance
-        columns = self.session.training_data.columns
+        columns = self.session.trans_engine.training_data.columns
         est_cov, inv_cov = graphical_lasso(cov, alpha=self.param['sparsity'], mode=self.param['solver'],
                                            max_iter=self.param['max_iter'])
         self.s_p = np.count_nonzero(inv_cov)
         # apply threshold
         if self.param['threshold'] == -1:
-            self.param['threshold'] = np.sqrt(np.log(self.p)*(self.s_p)/self.session.sample_size)
+            self.param['threshold'] = np.sqrt(np.log(self.p)*(self.s_p)/self.session.trans_engine.sample_size)
         logger.info("use threshold %.4f" % self.param['threshold'])
-        mask = inv_cov
         if self.param['take_neg']:
             diag = inv_cov.diagonal()
             diag_idx = np.diag_indices(inv_cov.shape[0])
-            mask = - inv_cov
+            mask = -inv_cov
             mask[diag_idx] = diag
-        if self.param['take_abs']:
+        else:
             mask = np.abs(inv_cov)
         inv_cov[mask < self.param['threshold']] = 0
-        # set diagonal to zero
-        # np.fill_diagonal(inv_cov, self.param['diagonal'])
         # add index/column names
         inv_cov = StructureLearner.get_df(inv_cov, columns)
         est_cov = StructureLearner.get_df(est_cov, columns)
-        if self.param['visualize']:
-            visualize_heatmap(inv_cov)
         return inv_cov, est_cov
 
     def estimate_covariance(self):
-        X = self.session.training_data.values
-        columns = self.session.training_data.columns
+        X = self.session.trans_engine.training_data.values
+        columns = self.session.trans_engine.training_data.columns
         self.p = X.shape[1]
         # centralize data
         X = X - np.mean(X, axis=0)
-        # standardize data
-        #X = X / np.linalg.norm(X, axis=0)
         # with missing value
         cov = np.dot(X.T, X) / X.shape[0]
-        m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-self.session.null_pb))
-        np.fill_diagonal(m, 1/(1-self.session.null_pb))
+        m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-self.session.trans_engine.null_pb))
+        np.fill_diagonal(m, 1/(1-self.session.trans_engine.null_pb))
         est_cov = np.multiply(cov, m)
         est_cov = StructureLearner.get_df(est_cov, columns)
         self.cov = est_cov
@@ -401,6 +495,7 @@ def plot_graph(graph, label=False, directed=False, circle=False, title=None):
     plt.draw()
     plt.show()
     return G
+
 
 def print_tree(T, node, level=0):
     print("{}[{}]{}:{}".format("--"*level, node, T.node_types[node], T.idx_to_name[node]))
