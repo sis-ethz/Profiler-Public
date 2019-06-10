@@ -7,10 +7,10 @@ numpy>=1.16.0
 scipy
 pandas
 Cython==0.29.2
-pybind11
 pandas
 six
 scikit-learn>=0.20.0
 ipykernel
 seaborn
 gensim
+networkx
