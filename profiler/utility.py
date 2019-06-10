@@ -68,7 +68,7 @@ class GlobalTimer(object):
         time_pt=curr-self.origin
         info = "[{time_pt}] {msg} start\n".format(time_pt=time_pt,msg=msg)
         if self.log:
-            self.time_log.append([time_pt,"{} start".format(msg),0])
+            self.time_log.append([time_pt,"start: {}".format(msg),0])
         self.start = curr
         logger.info(info)
 
@@ -88,4 +88,6 @@ class GlobalTimer(object):
         log.to_csv("time_points.csv", index=False)
 
     def get_stat(self):
-        return pd.DataFrame(data=self.time_log, columns=['time_point', 'msg', 'execution_time'])
+        stat = pd.DataFrame(data=self.time_log, columns=['time_point', 'msg', 'execution_time'])
+        stat.loc[stat.shape[0]] = [stat.iloc[stat.shape[0]-1, 0], "total_execution_time", stat.execution_time.sum()]
+        return stat
