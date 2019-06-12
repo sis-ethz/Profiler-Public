@@ -55,7 +55,7 @@ class StructureLearner(object):
         Gs = G.get_undirected_connected_components()
         self.Bs = [self.cholesky_decompose(self.inv_cov.iloc[list(g.idx_to_name.keys()),
                                                              list(g.idx_to_name.keys())]) for g in Gs]
-        return Bs
+        return self.Bs
 
     def learn_dp(self, **kwargs):
         """
@@ -89,7 +89,7 @@ class StructureLearner(object):
             for i, B in enumerate(self.Bs):
                 visualize_heatmap(B, title="Autoregression Matrix (Part %d)"%(i+1))
 
-    def training_data_violation(self, pair):
+    def training_data_fd_violation(self, pair):
         left, right = pair
         stat = self.session.trans_engine.training_data.reset_index().groupby(list(left)+[right])['index'].count()
         idx = list([1.0]*len(left))
@@ -110,17 +110,17 @@ class StructureLearner(object):
             parent_sets = {}
             for i, attr in enumerate(U_hat):
                 columns = U_hat.columns.values[0:i]
-                parents = columns[U_hat.iloc[i, 0:i] != 0]
+                parents = columns[(U_hat.iloc[0:i, i] != 0).values]
                 parent_sets[attr] = parents
                 if len(parents) > 0:
                     s, _ = s_func((parents, attr))
                     print("{} -> {} ({})".format(",".join(parents), attr, s))
             return parent_sets
 
-        if score == "training_data_vio_ratio":
-            scoring_func = self.training_data_violation
+        if score == "training_data_fd_vio_ratio":
+            scoring_func = self.training_data_fd_violation
         else:
-            scoring_func = (lambda x: "n/a")
+            scoring_func = (lambda x: ("n/a", None))
 
         if heatmap is None:
             if self.B is not None:
@@ -148,9 +148,10 @@ class StructureLearner(object):
         mat = inv_cov.iloc[perm, perm]
         A = sparse.csc_matrix(mat.values)
         factor = cholesky(A)
-        U = factor.L_D()[0].toarray()
-        U_hat = StructureLearner.get_df(U, inv_cov.columns.values[perm])
-        return U_hat
+        L = factor.L_D()[0].toarray()
+        B = np.eye(L.shape[0]) - np.transpose(L)
+        B_hat = StructureLearner.get_df(B, inv_cov.columns.values[perm])
+        return B_hat
 
     def estimate_inverse_covariance(self, cov):
         """
@@ -244,7 +245,10 @@ class StructureLearner(object):
         self.idx_to_col = idx_col.set_index('idx')
         for i, attr in enumerate(inv_cov):
             # do not consider a_op1 -> a_op2
-            columns = np.array([c for c in inv_cov.columns.values if "_".join(attr.split('_')[:-1]) not in c])
+            if self.session.env['inequality']:
+                columns = np.array([c for c in inv_cov.columns.values if "_".join(attr.split('_')[:-1]) not in c])
+            else:
+                columns = np.array([c for c in inv_cov.columns.values if attr != c])
             neighbors = columns[(inv_cov.loc[attr, columns]).abs() > 0]
             if len(neighbors) == 0:
                 continue

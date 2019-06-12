@@ -11,24 +11,29 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def normalized_sim(diff):
+    return 1 - np.abs(diff) / np.nanmax(np.abs(diff))
+
+
 def compute_differences(attr, dtype, env, operators, left, right, embed):
     if dtype == CATEGORICAL:
-        df, c = compute_differences_categorical(env, attr, operators, left, right)
+        df, c = compute_differences_categorical(env, attr, left, right)
     elif dtype == NUMERIC:
         df, c = compute_differences_numerical(env, attr, operators, left, right)
     elif dtype == DATE:
         df, c = compute_differences_date(env, attr, operators, left, right)
     elif dtype == TEXT:
         if env['embedtxt']:
-            df, c = compute_differences_text(env, attr, operators, left, right, embed)
+            df, c = compute_differences_text(env, attr, left, right, embed)
         else:
-            df, c = compute_differences_categorical(env, attr, operators, left, right)
+            df, c = compute_differences_categorical(env, attr, left, right)
     else:
         df = None
+
     return df, c
 
 
-def compute_differences_text(env, attr, operators, left, right, embed):
+def compute_differences_text(env, attr, left, right, embed):
     if embed is None:
         raise Exception('ERROR while creating training data. Embedding model is none')
     # handle null
@@ -37,27 +42,23 @@ def compute_differences_text(env, attr, operators, left, right, embed):
     df = pd.DataFrame()
     left = embed.get_embedding(left, attr=attr).squeeze()
     right = embed.get_embedding(right, attr=attr).squeeze()
-    diff = 1 - np.sum(np.multiply(left, right), axis=1) / (np.sqrt(np.sum(np.square(left), axis=1)) *
+    sim = np.sum(np.multiply(left, right), axis=1) / (np.sqrt(np.sum(np.square(left), axis=1)) *
                                                np.sqrt(np.sum(np.square(right), axis=1)))
 
     if env['continuous']:
-        df["%s_eq" % attr] = diff / np.nanmax(diff)
+        df[attr] = sim
     else:
-        df["%s_eq" % attr] = ((diff / np.nanmax(diff)) <= env['tol'])*1
-        if NEQ in operators:
-            df["%s_neq" % attr] = - df["%s_eq" % attr]
+        df[attr] = (sim >= 1 - env['tol'])*1
 
     # handle null
     df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
     return df, len(mask)
 
 
-def compute_differences_categorical(env, attr, operators, left, right):
+def compute_differences_categorical(env, attr, left, right):
     df = pd.DataFrame()
     mask = left[(left == env['null']) | (right == env['null'])].index.values
-    df["%s_eq" % attr] = np.equal(left, right)*1
-    if NEQ in operators:
-        df["%s_neq" % attr] = - df["%s_eq"%attr]
+    df[attr] = np.equal(left, right)*1
 
     # handle null
     df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
@@ -65,38 +66,22 @@ def compute_differences_categorical(env, attr, operators, left, right):
 
 
 def compute_differences_numerical(env, attr, operators, left, right):
-    df = pd.DataFrame()
     diff = left - right
-    if env['continuous']:
-        df["%s_eq" % attr] = np.abs(diff)
-        if GT in operators:
-            gt = diff.copy()
-            gt[diff <= 0] = 0
-            df["%s_gt" % attr] = gt
-        if LT in operators:
-            lt = diff.copy()
-            lt[diff >= 0] = 0
-            df["%s_lt" % attr] = lt
-    else:
-        df["%s_eq" % attr] = ((np.abs(diff) / np.nanmax(np.abs(diff))) <= env['tol'])*1
-        if NEQ in operators:
-            df["%s_neq" % attr] = - df["%s_eq"%attr]
-        if GT in operators:
-            df["%s_gt" % attr] = (diff > 0)*1
-        if LT in operators:
-            df["%s_lt" % attr] = (diff < 0)*1
-
-    # handle null
-    mask = left[np.isnan(diff)].index.values
-    df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
-    return df, len(mask)
+    return compute_differences_numerical_helper(env, attr, operators, left, diff)
 
 
 def compute_differences_date(env, attr, operators, left, right):
-    df = pd.DataFrame()
     diff = ((left.values - right.values) / np.timedelta64(1, 's')).astype('float')
+    return compute_differences_numerical_helper(env, attr, operators, left, diff)
+
+
+def compute_differences_numerical_helper(env, attr, operators, left, diff):
+    df = pd.DataFrame()
     if env['continuous']:
-        df["%s_eq" % attr] = np.abs(diff) / np.nanmax(np.abs(diff))
+        if len(operators) == 1:
+            df[attr] = normalized_sim(diff)
+        else:
+            df["%s_eq" % attr] = normalized_sim(diff)
         if GT in operators:
             gt = diff.copy()
             gt[diff <= 0] = 0
@@ -106,13 +91,15 @@ def compute_differences_date(env, attr, operators, left, right):
             lt[diff >= 0] = 0
             df["%s_lt" % attr] = lt
     else:
-        df["%s_eq" % attr] = ((np.abs(diff) / np.nanmax(np.abs(diff))) <= env['tol'])*1
-        if NEQ in operators:
-            df["%s_neq" % attr] = - df["%s_eq"%attr]
+        if len(operators) == 1:
+            df[attr] = (normalized_sim(diff) >= 1 - env['tol'])*1
+        else:
+            df["%s_eq" % attr] = (normalized_sim(diff) >= 1 - env['tol'])*1
         if GT in operators:
             df["%s_gt" % attr] = (diff > 0)*1
         if LT in operators:
             df["%s_lt" % attr] = (diff < 0)*1
+
     # handle null
     mask = left[np.isnan(diff)].index.values
     df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
