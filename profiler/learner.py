@@ -104,6 +104,17 @@ class StructureLearner(object):
         ratio = disagree / float(agree+disagree)
         return ratio, stat
 
+    def fit_error(self, pair):
+        left, right = pair
+        # dim: left * right
+        coeff = self.B.loc[left, right].values
+        offset = self.session.trans_engine.training_data[right] - \
+                 np.dot(self.session.trans_engine.training_data[left].values, coeff)
+        # normalize offsets
+        bias = np.mean(offset)
+        err = np.sum(np.square(offset - bias)) / float(self.session.trans_engine.training_data.shape[0])
+        return err, bias
+
     def get_dependencies(self, heatmap, score):
 
         def get_dependencies_helper(U_hat, s_func):
@@ -119,6 +130,8 @@ class StructureLearner(object):
 
         if score == "training_data_fd_vio_ratio":
             scoring_func = self.training_data_fd_violation
+        elif score == "fit_error":
+            scoring_func = self.fit_error
         else:
             scoring_func = (lambda x: ("n/a", None))
 
