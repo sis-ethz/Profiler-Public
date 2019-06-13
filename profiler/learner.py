@@ -162,19 +162,6 @@ class StructureLearner(object):
             G.delete_node(to_delete)
         return order
 
-    # def upper_decompose(self, inv_cov):
-    #     order = self.get_ordering(inv_cov)
-    #     K = inv_cov.iloc[order, order]
-    #     P = np.rot90(np.eye(K.shape[0]))
-    #     PKP = np.dot(np.dot(P, K.values), P.transpose())
-    #     A = sparse.csc_matrix(PKP)
-    #     factor = cholesky(A)
-    #     L = factor.L_D()[0].toarray()
-    #     U = np.eye(K.shape[0]) - np.dot(np.dot(P, L), P.transpose())
-    #     print(K.columns)
-    #     B = StructureLearner.get_df(U, K.columns.values[factor.P()])
-    #     return B
-
     def upper_decompose(self, inv_cov):
         I = np.eye(inv_cov.shape[0])
         P = np.rot90(I)
@@ -182,13 +169,9 @@ class StructureLearner(object):
         PAP = sparse.csc_matrix(PAP)
         factor = cholesky(PAP)
         L = factor.L_D()[0].toarray()
-        D = factor.L_D()[1].toarray()
         U = np.dot(np.dot(P, L), P.transpose())
         B = I - U
-        B = StructureLearner.get_df(B, inv_cov.columns.values[factor.P()])
-        permuted = (StructureLearner.get_df(np.dot(np.dot(U, D), U.transpose()),
-                                      inv_cov.columns.values[factor.P()]))
-        self.session.debug = permuted.loc[inv_cov.columns, inv_cov.columns]
+        B = StructureLearner.get_df(B, np.flip(np.flip(inv_cov.columns.values)[factor.P()]))
         return B
 
 
