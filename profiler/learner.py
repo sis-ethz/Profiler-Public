@@ -26,8 +26,9 @@ class StructureLearner(object):
             'max_iter': 500,
             'lower_triangular': 0,
             'threshold': -1,
-            'visualize': True,
+            'visualize': False,
             'take_neg': False,
+            'take_pos': False,
         }
         self.width = -1
         self.cov = None
@@ -44,16 +45,16 @@ class StructureLearner(object):
         self.param.update(kwargs)
         self.cov = self.estimate_covariance()
         self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
-        self.B = self.cholesky_decompose(self.inv_cov)
+        self.B = self.upper_decompose(self.inv_cov)
         return self.B
 
     def learn_separate(self, **kwargs):
         self.param.update(kwargs)
         self.cov = self.estimate_covariance()
         self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
-        G = pf.session.struct_engine.recover_moral_graphs(self.inv_cov)
+        G = self.session.struct_engine.recover_moral_graphs(self.inv_cov)
         Gs = G.get_undirected_connected_components()
-        self.Bs = [self.cholesky_decompose(self.inv_cov.iloc[list(g.idx_to_name.keys()),
+        self.Bs = [self.upper_decompose(self.inv_cov.iloc[list(g.idx_to_name.keys()),
                                                              list(g.idx_to_name.keys())]) for g in Gs]
         return self.Bs
 
@@ -121,7 +122,7 @@ class StructureLearner(object):
             parent_sets = {}
             for i, attr in enumerate(U_hat):
                 columns = U_hat.columns.values[0:i]
-                parents = columns[(U_hat.iloc[0:i, i] != 0).values]
+                parents = columns[(U_hat.iloc[0:i, i] > 0).values]
                 parent_sets[attr] = parents
                 if len(parents) > 0:
                     s, _ = s_func((parents, attr))
@@ -146,23 +147,41 @@ class StructureLearner(object):
             parent_sets = get_dependencies_helper(heatmap, scoring_func)
         return parent_sets
 
-
     @staticmethod
     def get_df(matrix, columns):
         df = pd.DataFrame(data=matrix, columns=columns)
         df.index = columns
         return df
 
+    def get_ordering(self, inv_cov):
+        G = self.recover_moral_graphs(inv_cov)
+        order = []
+        while G.degrees.shape[0] > 0:
+            to_delete = G.degrees.index.values[G.degrees.degree.values.argmin()]
+            order.append(to_delete)
+            G.delete_node(to_delete)
+        return order
+
+    def upper_decompose(self, inv_cov):
+        I = np.eye(inv_cov.shape[0])
+        P = np.rot90(I)
+        PAP = np.dot(np.dot(P, inv_cov), P.transpose())
+        PAP = sparse.csc_matrix(PAP)
+        factor = cholesky(PAP)
+        L = factor.L_D()[0].toarray()
+        U = np.dot(np.dot(P, L), P.transpose())
+        B = I - U
+        B = StructureLearner.get_df(B, np.flip(np.flip(inv_cov.columns.values)[factor.P()]))
+        return B
+
+
     def cholesky_decompose(self, inv_cov):
         # cholesky decomposition of invcov
         A = sparse.csc_matrix(inv_cov.values)
-        factor = analyze(A)
-        perm = factor.P()
-        mat = inv_cov.iloc[perm, perm]
-        A = sparse.csc_matrix(mat.values)
         factor = cholesky(A)
-        L = factor.L_D()[0].toarray()
-        B = np.eye(L.shape[0]) - np.transpose(L)
+        perm = factor.P()
+        L = np.transpose(factor.L_D()[0].toarray())
+        B = np.eye(L.shape[0]) - L
         B_hat = StructureLearner.get_df(B, inv_cov.columns.values[perm])
         return B_hat
 
@@ -205,6 +224,8 @@ class StructureLearner(object):
         m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-self.session.trans_engine.null_pb))
         np.fill_diagonal(m, 1/(1-self.session.trans_engine.null_pb))
         est_cov = np.multiply(cov, m)
+        if self.param['take_pos']:
+            est_cov[est_cov < 0] = 0
         est_cov = StructureLearner.get_df(est_cov, columns)
         self.cov = est_cov
         return est_cov

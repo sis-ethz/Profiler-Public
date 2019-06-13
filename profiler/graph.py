@@ -136,9 +136,13 @@ class DirectedGraph(Graph):
             self.out_degrees.loc[idx1, 'degree'] -= 1
 
     def delete_node(self, idx):
-        super(DirectedGraph, self).delete_node(idx)
+        for child in self.get_children(idx):
+            self.in_degrees.loc[child, 'degree'] -= 1
+        for parent in self.get_parents(idx):
+            self.out_degrees.loc[parent, 'degree'] -= 1
         self.in_degrees.drop(idx, axis=0)
         self.out_degrees.drop(idx, axis=0)
+        super(DirectedGraph, self).delete_node(idx)
 
     def to_undirected(self):
         G = UndirectedGraph()
@@ -171,8 +175,11 @@ class UndirectedGraph(Graph):
             super(UndirectedGraph, self).add_undirected_edge(idx1, idx2)
 
     def delete_node(self, idx):
+        self.degrees.drop(idx, axis=0, inplace=True)
+        for nbr in self.get_neighbors(idx):
+            self.degrees.loc[nbr, 'degree'] -= 1
         super(UndirectedGraph, self).delete_node(idx)
-        self.degrees.drop(idx, axis=0)
+
 
     def remove_undirected_edge(self, idx1, idx2):
         if self.exist_undirected_edge(idx1, idx2):
