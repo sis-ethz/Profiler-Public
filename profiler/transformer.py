@@ -118,6 +118,8 @@ class TransformEngine(object):
         self.sample_size = -1
         self.null_pb = 0
         self.embed = None
+        self.left_idx = None
+        self.right_idx = None
 
     def check_singular(self, df):
         # check singular
@@ -141,10 +143,11 @@ class TransformEngine(object):
     def create_training_data(self, multiplier=None, embed=None, difference=True):
 
         if not difference:
-            data = self.check_singular(self.ds.df)
-            self.null_pb = np.count_nonzero(np.isnan(data)) / (data.shape[0] * data.shape[1])
+            data, _ = self.check_singular(self.ds.df)
+            self.null_pb = 0
             self.sample_size = data.shape[0]
             self.training_data = data
+            return
 
         self.embed = embed
 
@@ -153,7 +156,7 @@ class TransformEngine(object):
         multiplier = self.get_multiplier(multiplier)
 
         logger.info("Draw Pairs")
-        left, right = self.create_pair_data(multiplier=multiplier)
+        left, right, self.left_idx, self.right_idx = self.create_pair_data(multiplier=multiplier)
 
         logger.info("Computing Differences")
         data_count = self.compute_differences(left, right)
@@ -206,7 +209,11 @@ class TransformEngine(object):
                 drop=True) for i in range(multiplier)]
             lefts.extend(left)
             rights.extend(right)
-        lefts = pd.concat(lefts).reset_index(drop=True)
-        rights = pd.concat(rights).reset_index(drop=True)
+        lefts = pd.concat(lefts)
+        left_idx = lefts.index.values
+        lefts = lefts.reset_index(drop=True)
+        rights = pd.concat(rights)
+        right_idx = rights.index.values
+        rights = rights.reset_index(drop=True)
         logger.info("Number of training samples: %d"%lefts.shape[0])
-        return lefts, rights
+        return lefts, rights, left_idx, right_idx
