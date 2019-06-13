@@ -185,7 +185,7 @@ class StructureLearner(object):
         P = np.rot90(I)
         PAP = np.dot(np.dot(P, K), P.transpose())
         PAP = sparse.csc_matrix(PAP)
-        factor = cholesky(PAP, mode='supernodal')
+        factor = cholesky(PAP)
         L = factor.L_D()[0].toarray()
         U = np.dot(np.dot(P, L), P.transpose())
         B = I - U
