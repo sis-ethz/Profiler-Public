@@ -122,7 +122,7 @@ class StructureLearner(object):
             parent_sets = {}
             for i, attr in enumerate(U_hat):
                 columns = U_hat.columns.values[0:i]
-                parents = columns[(U_hat.iloc[0:i, i] != 0).values]
+                parents = columns[(U_hat.iloc[0:i, i] > 0).values]
                 parent_sets[attr] = parents
                 if len(parents) > 0:
                     s, _ = s_func((parents, attr))
