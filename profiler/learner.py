@@ -29,6 +29,7 @@ class StructureLearner(object):
             'visualize': False,
             'take_neg': False,
             'take_pos': False,
+            'infer_order': False,
         }
         self.width = -1
         self.cov = None
@@ -45,7 +46,10 @@ class StructureLearner(object):
         self.param.update(kwargs)
         self.cov = self.estimate_covariance()
         self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
-        self.B = self.upper_decompose(self.inv_cov)
+        if not self.param['infer_order']:
+            self.B = self.upper_decompose(self.inv_cov)
+        else:
+            self.B = self.upper_decompose_ordered(self.inv_cov)
         return self.B
 
     def learn_separate(self, **kwargs):
@@ -174,6 +178,19 @@ class StructureLearner(object):
         B = StructureLearner.get_df(B, np.flip(np.flip(inv_cov.columns.values)[factor.P()]))
         return B
 
+    def upper_decompose_ordered(self, inv_cov):
+        order = self.get_ordering(inv_cov)
+        K = inv_cov.iloc[order, order]
+        I = np.eye(inv_cov.shape[0])
+        P = np.rot90(I)
+        PAP = np.dot(np.dot(P, K), P.transpose())
+        PAP = sparse.csc_matrix(PAP)
+        factor = cholesky(PAP, mode='supernodal')
+        L = factor.L_D()[0].toarray()
+        U = np.dot(np.dot(P, L), P.transpose())
+        B = I - U
+        B = StructureLearner.get_df(B, np.flip(np.flip(K.columns.values)[factor.P()]))
+        return B
 
     def cholesky_decompose(self, inv_cov):
         # cholesky decomposition of invcov
