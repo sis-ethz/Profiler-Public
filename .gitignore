@@ -7,3 +7,4 @@
 **.ipynb_checkpoints
 **-checkpoint.ipynb
 tutorials/data/TECHospital.csv
+datasets/*
