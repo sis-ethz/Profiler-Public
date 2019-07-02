@@ -138,17 +138,23 @@ class FT(object):
         word_vocab = pd.DataFrame(list(zip(unique, list(range(len(corpus))))),
                                   columns=['word', 'idx']).set_index('word')
 
-        def get_cell_vector(cell):
+        def get_cell_vector(cell, max_length):
             cell = self.config['tokenizer'](cell)
             idx = word_vocab.loc[cell, 'idx'].values
-            v = vec[idx].reshape(len(cell), len(vec[0]))
-            return list(np.sum(v, axis=0)/len(cell))
+            if not self.config['concate']:
+                v = vec[idx].reshape(len(cell), len(vec[0]))
+                return list(np.sum(v, axis=0)/len(cell))
+            else:
+                vectors = vec[idx]
+                v = np.zeros((max_length * len(vec[0]), ))
+                v[0:len(cell)*len(vec[0])] = vectors.reshape((-1,))
+                return list(v)
         # compute embedding for each cell
         if max_length == 1:
             unique_cells = unique
         else:
             unique_cells = np.unique(data)
-            vec = np.array(list(map(get_cell_vector, unique_cells))).squeeze()
+            vec = np.array(list(map(lambda x: get_cell_vector(x, max_length), unique_cells))).squeeze()
 
         vocab = pd.DataFrame(data=unique_cells, columns=['word']).reset_index().set_index('word')
         vocab.loc[np.nan, 'index'] = vec.shape[0]
@@ -209,6 +215,7 @@ class EmbeddingEngine(object):
             'batch_words': 100,
             'window': 3,
             "mode": "sif",
+            "concate": False,
         }
 
     def train(self, **kwargs):
