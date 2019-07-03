@@ -3,8 +3,10 @@ from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn import svm
-from tqdm import tqdm
 from profiler.utility import GlobalTimer
+from profiler.data.embedding import OneHotModel
+from profiler.globalvar import *
+from tqdm import tqdm
 import numpy as np
 import sklearn
 import warnings
@@ -45,12 +47,12 @@ class OutlierDetector(object):
         return has_same_left
 
     @abstractmethod
-    def get_outliers(self, data):
+    def get_outliers(self, data, right=None):
         # return a mask
         pass
 
     def run_attr(self, right):
-        attr_outliers = self.df.index.values[self.get_outliers(self.df[right])]
+        attr_outliers = self.df.index.values[self.get_outliers(self.df[right], right)]
         return attr_outliers
 
     def run_all(self, parent_sets, separate=True):
@@ -77,7 +79,7 @@ class OutlierDetector(object):
         has_same_neighbors = self.get_neighbors(left)
         #X = self.df[left].values
         #pbar= tqdm(total=100, leave=True)
-        iter = has_same_neighbors.shape[0] / 100
+        #iter = has_same_neighbors.shape[0] / 100
         for i, row in enumerate(has_same_neighbors):
             # indicies of neighbors
             nbr = self.df.index.values[row == len(left)]
@@ -87,9 +89,9 @@ class OutlierDetector(object):
             if len(nbr) == 0:
                 continue
             if self.method != "std":
-                outliers.extend(nbr[self.get_outliers(self.df.loc[nbr, right])])
+                outliers.extend(nbr[self.get_outliers(self.df.loc[nbr, right], right)])
             else:
-                outliers.extend(nbr[self.get_outliers(self.df.loc[nbr, right], m='m2')])
+                outliers.extend(nbr[self.get_outliers(self.df.loc[nbr, right], right,  m='m2')])
             # if i % iter == 0 and i != 0:
             #     pbar.update(1)
 
@@ -123,7 +125,7 @@ class OutlierDetector(object):
         # precision
         if len(outliers) == 0:
             if len(self.gt_idx) == 0:
-                print("no outlier is found and no outlier is present in the groud truth as well, f1 is 1")
+                print("no outlier is found and no outlier is present in the ground truth as well, f1 is 1")
                 return
             print("no outlier is found, f1: 0")
             return
@@ -161,7 +163,7 @@ class STDDetector(OutlierDetector):
             'm2': 5,
         }
 
-    def get_outliers(self, data, m='m1'):
+    def get_outliers(self, data, right=None, m='m1'):
         return abs(data - np.nanmean(data)) > self.param[m] * np.nanstd(data)
         # else, categorical, find low frequency items
 
@@ -175,7 +177,7 @@ class SEVERDetector(OutlierDetector):
         self.structured = None
         self.combined = None
 
-    def get_outliers(self, gradient):
+    def get_outliers(self, gradient, right=None):
         size = gradient.shape[0]
         gradient_avg = np.sum(gradient, axis=0)/size
         gradient_avg = np.repeat(gradient_avg.reshape(1, -1), size, axis=0)
@@ -196,22 +198,94 @@ class SEVERDetector(OutlierDetector):
         return mask
 
 
-class PyDetector(OutlierDetector):
-    def __init__(self, df, method, gt_idx=None, t=0.05):
-        super(PyDetector, self).__init__(df, gt_idx, method, t)
+class ScikitDetector(OutlierDetector):
+    def __init__(self, df, method, attr=None, embed=None, gt_idx=None, embed_txt=False,
+                 t=0.05, workers=4, **kwargs):
+        super(ScikitDetector, self).__init__(df, gt_idx, method, t=t, workers=workers)
+        self.embed = embed
+        self.attributes = attr
+        self.embed_txt = embed_txt
         self.overall = None
         self.structured = None
         self.combined = None
         self.algorithm = None
-        self.param = {}
+        self.param, self.algorithm = self.get_default_setting()
+        self.param.update(kwargs)
+        self.encoder = self.create_one_hot_encoder(df)
 
+    def get_default_setting(self):
+        if self.method == "isf":
+            param = {
+                'contamination': 0.1,
+            }
+            alg = IsolationForest
+        elif self.method == "ocsvm":
+            param = {
+                'nu': 0.1,
+                'kernel': "rbf",
+                'gamma': 0.1
+            }
+            alg = svm.OneClassSVM
+        elif self.method == "lof":
+            param = {
+                'n_neighbors': 100,
+                'contamination': 0.1,
+            }
+            alg = LocalOutlierFactor
+        return param, alg
 
-    def get_outliers(self, data):
+    def create_one_hot_encoder(self, df):
+        encoders = {}
+        for attr, dtype in self.attributes.items():
+            if dtype == CATEGORICAL or (dtype == TEXT and (not self.embed_txt)):
+                data = df[attr]
+                if not isinstance(data, np.ndarray):
+                    data = data.values
+                if len(data.shape) == 1:
+                    data = data.reshape(-1, 1)
+                encoders[attr] = OneHotModel(data)
+        return encoders
+
+    def get_neighbors(self, left):
+        X = self.df[left].values.reshape(-1,len(left))
+        # calculate pairwise distance for each attribute
+        distances = np.zeros((X.shape[0],X.shape[0]))
+        for j, attr in enumerate(left):
+            # validate type and calculate cosine distance
+            if self.attributes[attr] == TEXT and self.embed_txt:
+                data = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
+                dis = sklearn.metrics.pairwise.cosine_distances(data)
+            elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
+                data = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
+                dis = sklearn.metrics.pairwise.cosine_distances(data)
+            else:
+                dis = sklearn.metrics.pairwise_distances(X[:,j].reshape(-1,1),
+                                                         metric='cityblock', n_jobs=self.workers)
+            # normalize distance
+            # avoid divided by zero
+            maxdis = max(1e-6, np.nanmax(dis))
+            dis = dis / maxdis
+            distances = (dis <= 1e-6)*1 + distances
+        has_same_left = (distances == X.shape[1])
+        return has_same_left
+
+    def get_outliers(self, data, right=None):
         mask = np.zeros((data.shape[0]))
+
         if not isinstance(data, np.ndarray):
             data = data.values
         if len(data.shape) == 1:
             data = data.reshape(-1, 1)
+        if self.attributes[right] == TEXT:
+            if self.embed_txt:
+                # take embedding
+                data = self.embed[right].get_embedding(data)
+            else:
+                data = self.encoder[right].get_embedding(data)
+        elif self.attributes[right] == CATEGORICAL:
+            # take one hot encoding
+            data = self.encoder[right].get_embedding(data)
+
         # remove nan:
         row_has_nan = np.isnan(data).any(axis=1)
         clean = data[~row_has_nan]
@@ -221,48 +295,6 @@ class PyDetector(OutlierDetector):
         mask = mask.astype(int)
 
         return mask == -1
-
-
-class ISFDetector(PyDetector):
-    def __init__(self, df, gt_idx=None, t=0.05, **kwargs):
-        super(ISFDetector, self).__init__(df, "isf", gt_idx, t=t)
-        self.param = {
-            'contamination': 0.1,
-        }
-        self.overall = None
-        self.structured = None
-        self.combined = None
-        self.param.update(kwargs)
-        self.algorithm = IsolationForest
-
-
-class OCSVMDetector(PyDetector):
-    def __init__(self, df, gt_idx=None, t=0.05, **kwargs):
-        super(OCSVMDetector, self).__init__(df, "ocsvm", gt_idx, t=t)
-        self.param = {
-            'nu': 0.1,
-            'kernel': "rbf",
-            'gamma': 0.1
-        }
-        self.overall = None
-        self.structured = None
-        self.combined = None
-        self.param.update(kwargs)
-        self.algorithm = svm.OneClassSVM
-
-
-class LOFDetector(PyDetector):
-    def __init__(self, df, gt_idx=None, t=0.05, **kwargs):
-        super(LOFDetector, self).__init__(df, "lof", gt_idx, t=t)
-        self.param = {
-            'n_neighbors': 100,
-            'contamination': 0.1,
-        }
-        self.overall = None
-        self.structured = None
-        self.combined = None
-        self.param.update(kwargs)
-        self.algorithm = LocalOutlierFactor
 
 
 

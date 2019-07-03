@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, division
 from concurrent.futures import ThreadPoolExecutor
+from sklearn.preprocessing import OneHotEncoder
 from gensim.models.fasttext import FastText
 from scipy.spatial.distance import cosine
 from profiler.globalvar import *
@@ -14,6 +15,25 @@ logger.setLevel(logging.INFO)
 
 def get_cos(vec):
     return cosine(vec[0], vec[1])
+
+
+class OneHotModel(object):
+    def __init__(self, data):
+        """
+        :param corpus:
+        :param dim:
+        :param a: constant used for SIF embedding
+        """
+        self.encoder = self.build_vocab(data)
+
+
+    def build_vocab(self, data):
+        enc = OneHotEncoder(handle_unknown='ignore')
+        enc.fit(data)
+        return enc
+
+    def get_embedding(self, data):
+        return self.encoder.transform(data).toarray()
 
 
 class SIF(object):
