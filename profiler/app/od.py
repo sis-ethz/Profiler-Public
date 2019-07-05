@@ -21,7 +21,7 @@ class OutlierDetector(object):
 
     __metaclass__ = ABCMeta
     
-    def __init__(self, df, gt_idx=None, method='std', workers=4, t=0.05):
+    def __init__(self, df, gt_idx=None, method='std', workers=4, t=0.05, tol=1e-6):
         self.timer = GlobalTimer()
         self.method = method
         self.df = df
@@ -31,18 +31,22 @@ class OutlierDetector(object):
         self.combined = None
         self.workers=workers
         self.t = t
+        self.tol = tol
+        self.structured_info = {}
+        self.overall_info = {}
 
     def get_neighbors(self, left):
         X = self.df[left].values.reshape(-1,len(left))
         # calculate pairwise distance for each attribute
         distances = np.zeros((X.shape[0],X.shape[0]))
         for j in range(X.shape[1]):
-            dis = sklearn.metrics.pairwise_distances(X[:,j].reshape(-1,1), metric='cityblock', n_jobs=self.workers)
+            dis = sklearn.metrics.pairwise_distances(X[:,j].reshape(-1,1), 
+                                                     metric='cityblock', n_jobs=self.workers)
             # normalize distance
             # avoid divided by zero
-            maxdis = max(1e-6, np.nanmax(dis))
+            maxdis = max(self.tol, np.nanmax(dis))
             dis = dis / maxdis
-            distances = (dis <= 1e-6)*1 + distances
+            distances = (dis <= self.tol)*1 + distances
         has_same_left = (distances == X.shape[1])
         return has_same_left
 
@@ -53,6 +57,10 @@ class OutlierDetector(object):
 
     def run_attr(self, right):
         attr_outliers = self.df.index.values[self.get_outliers(self.df[right], right)]
+        self.overall_info[right] = {
+            'avg_neighbors': self.df.shape[0],
+            'total_outliers': len(attr_outliers)
+        }
         return attr_outliers
 
     def run_all(self, parent_sets, separate=True):
@@ -77,23 +85,38 @@ class OutlierDetector(object):
         if len(left) == 0:
             return outliers
         has_same_neighbors = self.get_neighbors(left)
+        num_neighbors = np.zeros((len(has_same_neighbors, )))
+        num_outliers = np.zeros((len(has_same_neighbors, )))
         #X = self.df[left].values
         #pbar= tqdm(total=100, leave=True)
         #iter = has_same_neighbors.shape[0] / 100
         for i, row in enumerate(has_same_neighbors):
             # indicies of neighbors
             nbr = self.df.index.values[row == len(left)]
-            # has_same = np.sum([(X[:, i] <= row[i] + 1e-6) & (X[:, i] >= row[i] - 1e-6)
+            # has_same = np.sum([(X[:, i] <= row[i] + self.tol) & (X[:, i] >= row[i] - self.tol)
             #                    for i in range(X.shape[1])], axis=0) == 2
             # nbr = self.df.index.values[has_same]
             if len(nbr) == 0:
                 continue
             if self.method != "std":
-                outliers.extend(nbr[self.get_outliers(self.df.loc[nbr, right], right)])
+                outlier = nbr[self.get_outliers(self.df.loc[nbr, right], right)]
             else:
-                outliers.extend(nbr[self.get_outliers(self.df.loc[nbr, right], right,  m='m2')])
+                outlier = nbr[self.get_outliers(self.df.loc[nbr, right], right, m='m2')]
+            outliers.extend(outlier)
+
+            # save outlier info
+            num_neighbors[i] = len(nbr)
+            num_outliers[i] = len(outlier)
             # if i % iter == 0 and i != 0:
             #     pbar.update(1)
+        # save info
+        self.structured_info[right] = {
+            'determined_by': left,
+            'num_neighbors': num_neighbors,
+            'num_outliers': num_outliers,
+            'avg_neighbors': np.nanmean(num_neighbors),
+            'total_outliers': len(np.unique(outliers))
+        }
 
         return outliers
 
@@ -107,6 +130,18 @@ class OutlierDetector(object):
         self.structured = outliers
         self.timer.time_end("structured")
 
+    def view_structured_info(self):
+        import matplotlib.pyplot as plt
+        for right in self.structured_info:
+            fig, (ax1, ax2) = plt.subplots(1, 2)
+            data = self.structured_info[right]['num_neighbors']
+            ax1.hist(data, density=True, bins=np.arange(data.min(), data.max()+1))
+            ax1.set_title("histogram of num_neighbors\n for column %s"%right)
+            width = 0.35
+            rects1 = ax2.bar(np.arange(len(data)),self.structured_info[right]['num_neighbors'],width)
+            rects2 = ax2.bar(np.arange(len(data))+width,self.structured_info[right]['num_outliers'],width)
+            ax2.legend((rects1[0], rects2[0]),['num_neighbors', 'num_outliers'])
+            ax2.set_title("num_neighbors and \nnum_outliers\n for column %s"%right)
 
     def run_combined(self, parent_sets=None):
         if self.overall is None:
@@ -200,8 +235,8 @@ class SEVERDetector(OutlierDetector):
 
 class ScikitDetector(OutlierDetector):
     def __init__(self, df, method, attr=None, embed=None, gt_idx=None, embed_txt=False,
-                 t=0.05, workers=4, **kwargs):
-        super(ScikitDetector, self).__init__(df, gt_idx, method, t=t, workers=workers)
+                 t=0.05, workers=4, tol=1e-6, **kwargs):
+        super(ScikitDetector, self).__init__(df, gt_idx, method, t=t, workers=workers, tol=tol)
         self.embed = embed
         self.attributes = attr
         self.embed_txt = embed_txt
@@ -263,9 +298,9 @@ class ScikitDetector(OutlierDetector):
                                                          metric='cityblock', n_jobs=self.workers)
             # normalize distance
             # avoid divided by zero
-            maxdis = max(1e-6, np.nanmax(dis))
+            maxdis = max(self.tol, np.nanmax(dis))
             dis = dis / maxdis
-            distances = (dis <= 1e-6)*1 + distances
+            distances = (dis <= self.tol)*1 + distances
         has_same_left = (distances == X.shape[1])
         return has_same_left
 
