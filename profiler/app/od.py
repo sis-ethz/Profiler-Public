@@ -221,9 +221,9 @@ class ScikitDetector(OutlierDetector):
             alg = IsolationForest
         elif self.method == "ocsvm":
             param = {
-                'nu': 0.1,
+                'nu': 0.5,
                 'kernel': "rbf",
-                'gamma': 0.1
+                'gamma': 'auto'
             }
             alg = svm.OneClassSVM
         elif self.method == "lof":
