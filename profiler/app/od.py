@@ -5,6 +5,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn import svm
 from profiler.utility import GlobalTimer
 from profiler.data.embedding import OneHotModel
+import matplotlib.pyplot as plt
 from profiler.globalvar import *
 from tqdm import tqdm
 import numpy as np
@@ -59,7 +60,8 @@ class OutlierDetector(object):
         attr_outliers = self.df.index.values[self.get_outliers(self.df[right], right)]
         self.overall_info[right] = {
             'avg_neighbors': self.df.shape[0],
-            'total_outliers': len(attr_outliers)
+            'total_outliers': len(attr_outliers),
+            'precision': self.compute_precision(outliers=attr_outliers, log=False)[0]
         }
         return attr_outliers
 
@@ -117,31 +119,21 @@ class OutlierDetector(object):
             'avg_neighbors': np.nanmean(num_neighbors),
             'total_outliers': len(np.unique(outliers))
         }
-
         return outliers
 
     def run_structured(self, parent_sets):
         self.timer.time_start("structured")
         structured = []
-        for child in tqdm(parent_sets):
-            structured.extend(self.run_attr_structured(parent_sets[child], child))
+        for i, child in enumerate(tqdm(parent_sets)):
+            outlier = self.run_attr_structured(parent_sets[child], child)
+            structured.extend(outlier)
+            if child not in self.structured_info:
+                continue
+            self.structured_info[child]['precision'], _ = self.compute_precision(outlier, log=False)
         unique, count = np.unique(structured, return_counts=True)
         outliers = list(unique[count > self.t*self.df.shape[0]])
         self.structured = outliers
         self.timer.time_end("structured")
-
-    def view_structured_info(self):
-        import matplotlib.pyplot as plt
-        for right in self.structured_info:
-            fig, (ax1, ax2) = plt.subplots(1, 2)
-            data = self.structured_info[right]['num_neighbors']
-            ax1.hist(data, density=True, bins=np.arange(data.min(), data.max()+1))
-            ax1.set_title("histogram of num_neighbors\n for column %s"%right)
-            width = 0.35
-            rects1 = ax2.bar(np.arange(len(data)),self.structured_info[right]['num_neighbors'],width)
-            rects2 = ax2.bar(np.arange(len(data))+width,self.structured_info[right]['num_outliers'],width)
-            ax2.legend((rects1[0], rects2[0]),['num_neighbors', 'num_outliers'])
-            ax2.set_title("num_neighbors and \nnum_outliers\n for column %s"%right)
 
     def run_combined(self, parent_sets=None):
         if self.overall is None:
@@ -152,25 +144,33 @@ class OutlierDetector(object):
         combined.extend(self.overall)
         self.combined = combined
 
-    def compute_pr(self, outliers, title=None):
-        if title is not None:
-            print("Results for %s:"%title)
+    def compute_precision(self, outliers, log=True):
         outliers = set(outliers)
         tp = 0.0
         # precision
         if len(outliers) == 0:
             if len(self.gt_idx) == 0:
-                print("no outlier is found and no outlier is present in the ground truth as well, f1 is 1")
-                return
-            print("no outlier is found, f1: 0")
-            return
+                if log:
+                    print("no outlier is found and no outlier is present in the ground truth as well, f1 is 1")
+                return 1, 0
+            if log:
+                print("no outlier is found, f1: 0")
+            return 0, 0
         for i in outliers:
             if i in self.gt_idx:
                 tp += 1
         prec = tp / len(outliers)
-        print("with %d detected outliers, precision is: %.4f"%(len(outliers), prec))
+        if log:
+            print("with %d detected outliers, precision is: %.4f"%(len(outliers), prec))
+        return prec, tp
+
+    def compute_f1(self, outliers, title=None, log=True):
+        if title is not None:
+            print("Results for %s:"%title)
+        prec, tp = self.compute_precision(outliers, log=log)
         rec = self.compute_recall(tp, outliers)
-        print("f1: %.4f"%(2 * (prec * rec) / (prec + rec)))
+        if log:
+            print("f1: %.4f"%(2 * (prec * rec) / (prec + rec)))
 
     def compute_recall(self, tp, outliers):
         if tp == 0:
@@ -183,10 +183,42 @@ class OutlierDetector(object):
         print("with %d detected outliers, recall is: %.4f"%(len(outliers), recall))
         return recall
 
+    def visualize_precision(self, dict, name):
+        data = [dict[right]['precision'] for right in dict]
+        fig, ax = plt.subplots()
+        ax.bar(np.arange(len(data)), data)
+        ax.set_xticklabels(list(dict.keys()))
+        ax.set_title("[%s] precision for every column"%name)
+
     def evaluate(self):
-        self.compute_pr(self.overall, "naive approach")
-        self.compute_pr(self.structured, "structure only")
-        self.compute_pr(self.combined, "enhance naive with structured")
+        self.compute_f1(self.overall, "naive approach")
+        self.compute_f1(self.structured, "structure only")
+        self.compute_f1(self.combined, "enhance naive with structured")
+        self.visualize_precision(self.structured_info, 'structured')
+        self.visualize_precision(self.overall_info, 'overall')
+
+    def view_neighbor_info(self):
+
+        for right in self.structured_info:
+            fig, (ax1, ax2) = plt.subplots(1, 2)
+            data = self.structured_info[right]['num_neighbors']
+            ax1.hist(data, density=True, bins=np.arange(data.min(), data.max()+1))
+            ax1.set_title("histogram of num_neighbors\n for column %s"%right)
+            width = 0.35
+            rects1 = ax2.bar(np.arange(len(data)),self.structured_info[right]['num_neighbors'],width)
+            rects2 = ax2.bar(np.arange(len(data))+width,self.structured_info[right]['num_outliers'],width)
+            ax2.legend((rects1[0], rects2[0]),['num_neighbors', 'num_outliers'])
+            ax2.set_title("num_neighbors and \nnum_outliers\n for column %s"%right)
+
+        fig, ax = plt.subplots()
+        width = 0.35
+        rects1 = ax.bar(np.arange(len(self.structured_info))+width,
+                        [self.overall_info[right]['avg_neighbors'] for right in self.structured_info], width)
+        rects2 = ax.bar(np.arange(len(self.structured_info)),
+                        [self.structured_info[right]['avg_neighbors'] for right in self.structured_info], width)
+        ax.legend((rects1[0], rects2[0]),['overall', 'structured'])
+        ax.set_xticklabels(list(self.structured_info.keys()))
+        ax.set_title("average number of neighbors for every column")
 
 
 class STDDetector(OutlierDetector):
