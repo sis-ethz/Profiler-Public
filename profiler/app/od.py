@@ -212,11 +212,11 @@ class OutlierDetector(object):
 
         fig, ax = plt.subplots()
         width = 0.35
-        rects1 = ax.bar(np.arange(len(self.structured_info))+width,
-                        [self.overall_info[right]['avg_neighbors'] for right in self.structured_info], width)
+        # rects1 = ax.bar(np.arange(len(self.structured_info))+width,
+        #                 [self.overall_info[right]['avg_neighbors'] for right in self.structured_info], width)
         rects2 = ax.bar(np.arange(len(self.structured_info)),
                         [self.structured_info[right]['avg_neighbors'] for right in self.structured_info], width)
-        ax.legend((rects1[0], rects2[0]),['overall', 'structured'])
+        # ax.legend((rects1[0], rects2[0]),['overall', 'structured'])
         ax.set_xticklabels(list(self.structured_info.keys()))
         ax.set_title("average number of neighbors for every column")
 
@@ -334,6 +334,8 @@ class ScikitDetector(OutlierDetector):
             dis = dis / maxdis
             distances = (dis <= self.tol)*1 + distances
         has_same_left = (distances == X.shape[1])
+        if "M" in left:
+            self.debug = distances
         return has_same_left
 
     def get_outliers(self, data, right=None):
