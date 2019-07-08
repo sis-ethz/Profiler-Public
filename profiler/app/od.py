@@ -10,11 +10,15 @@ from profiler.globalvar import *
 from tqdm import tqdm
 import numpy as np
 import sklearn
-import warnings
+import warnings, logging
 
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 
@@ -89,15 +93,9 @@ class OutlierDetector(object):
         has_same_neighbors = self.get_neighbors(left)
         num_neighbors = np.zeros((len(has_same_neighbors, )))
         num_outliers = np.zeros((len(has_same_neighbors, )))
-        #X = self.df[left].values
-        #pbar= tqdm(total=100, leave=True)
-        #iter = has_same_neighbors.shape[0] / 100
         for i, row in enumerate(has_same_neighbors):
             # indicies of neighbors
-            nbr = self.df.index.values[row == len(left)]
-            # has_same = np.sum([(X[:, i] <= row[i] + self.tol) & (X[:, i] >= row[i] - self.tol)
-            #                    for i in range(X.shape[1])], axis=0) == 2
-            # nbr = self.df.index.values[has_same]
+            nbr = self.df.index.values[row]
             if len(nbr) == 0:
                 continue
             if self.method != "std":
@@ -109,8 +107,6 @@ class OutlierDetector(object):
             # save outlier info
             num_neighbors[i] = len(nbr)
             num_outliers[i] = len(outlier)
-            # if i % iter == 0 and i != 0:
-            #     pbar.update(1)
         # save info
         self.structured_info[right] = {
             'determined_by': left,
@@ -170,7 +166,10 @@ class OutlierDetector(object):
         prec, tp = self.compute_precision(outliers, log=log)
         rec = self.compute_recall(tp, outliers)
         if log:
-            print("f1: %.4f"%(2 * (prec * rec) / (prec + rec)))
+            if rec == 0:
+                print("f1: 0")
+            else:
+                print("f1: %.4f"%(2 * (prec * rec) / (prec + rec)))
 
     def compute_recall(self, tp, outliers):
         if tp == 0:
@@ -333,22 +332,28 @@ class ScikitDetector(OutlierDetector):
         for j, attr in enumerate(left):
             # validate type and calculate cosine distance
             if self.attributes[attr] == TEXT and self.embed_txt:
+                logger.info('text')
                 data = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
                 dis = sklearn.metrics.pairwise.cosine_distances(data)
             elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
+                logger.info('categorical')
                 data = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
                 dis = sklearn.metrics.pairwise.cosine_distances(data)
             else:
+                logger.info('numeric')
                 dis = sklearn.metrics.pairwise_distances(X[:,j].reshape(-1,1),
                                                          metric='cityblock', n_jobs=self.workers)
             # normalize distance
             # avoid divided by zero
             maxdis = max(self.tol, np.nanmax(dis))
+            if "V.1" in left and "Y" in left and "M" not in left:
+                if "V.1" == attr:
+                    self.debug_v = dis
+                else:
+                    self.debug_y = dis
             dis = dis / maxdis
             distances = (dis <= self.tol)*1 + distances
         has_same_left = (distances == X.shape[1])
-        if "M" in left:
-            self.debug = distances
         return has_same_left
 
     def get_outliers(self, data, right=None):
