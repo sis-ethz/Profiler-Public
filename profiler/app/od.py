@@ -129,7 +129,7 @@ class OutlierDetector(object):
             structured.extend(outlier)
             if child not in self.structured_info:
                 continue
-            self.structured_info[child]['precision'], _ = self.compute_precision(outlier, log=False)
+            self.structured_info[child]['precision'] = self.compute_precision(outlier, log=False)[0]
         unique, count = np.unique(structured, return_counts=True)
         outliers = list(unique[count > self.t*self.df.shape[0]])
         self.structured = outliers
@@ -184,41 +184,54 @@ class OutlierDetector(object):
         return recall
 
     def visualize_precision(self, dict, name):
-        data = [dict[right]['precision'] for right in dict]
+        data = [dict[right]['precision'] if right in dict else 0 for right in self.overall_info]
         fig, ax = plt.subplots()
         ax.bar(np.arange(len(data)), data)
-        ax.set_xticklabels(list(dict.keys()))
+        ax.set_xticks(np.arange(len(data)))
+        ax.set_yticks(np.arange(0,1,0.1))
+        for i, v in enumerate(data):
+            ax.text(i - 0.25, v + .03, "%.2f"%v)
+        ax.set_xticklabels(list(self.overall_info.keys()))
+        ax.set_xlabel('Column Name')
+        ax.set_ylabel('Precision')
         ax.set_title("[%s] precision for every column"%name)
 
     def evaluate(self):
         self.compute_f1(self.overall, "naive approach")
         self.compute_f1(self.structured, "structure only")
         self.compute_f1(self.combined, "enhance naive with structured")
-        self.visualize_precision(self.structured_info, 'structured')
         self.visualize_precision(self.overall_info, 'overall')
+        self.visualize_precision(self.structured_info, 'structured')
 
     def view_neighbor_info(self):
-
         for right in self.structured_info:
-            fig, (ax1, ax2) = plt.subplots(1, 2)
+            fig, ax2 = plt.subplots()
             data = self.structured_info[right]['num_neighbors']
-            ax1.hist(data, density=True, bins=np.arange(data.min(), data.max()+1))
-            ax1.set_title("histogram of num_neighbors\n for column %s"%right)
+    #         ax1.hist(data, density=True, bins=np.arange(data.min(), data.max()+1))
+    #         ax1.set_title("histogram of num_neighbors\n for column %s"%right)
+    #         ax1.set_xlabel('index of tuple')
+    #         ax1.set_ylabel('count')
             width = 0.35
             rects1 = ax2.bar(np.arange(len(data)),self.structured_info[right]['num_neighbors'],width)
             rects2 = ax2.bar(np.arange(len(data))+width,self.structured_info[right]['num_outliers'],width)
             ax2.legend((rects1[0], rects2[0]),['num_neighbors', 'num_outliers'])
             ax2.set_title("num_neighbors and \nnum_outliers\n for column %s"%right)
+            ax2.set_xlabel('index of tuple')
+            ax2.set_ylabel('count')
 
         fig, ax = plt.subplots()
         width = 0.35
-        # rects1 = ax.bar(np.arange(len(self.structured_info))+width,
-        #                 [self.overall_info[right]['avg_neighbors'] for right in self.structured_info], width)
-        rects2 = ax.bar(np.arange(len(self.structured_info)),
-                        [self.structured_info[right]['avg_neighbors'] for right in self.structured_info], width)
-        # ax.legend((rects1[0], rects2[0]),['overall', 'structured'])
-        ax.set_xticklabels(list(self.structured_info.keys()))
+        rects1 = ax.bar(np.arange(len(self.overall_info))+width,
+                        [self.overall_info[right]['avg_neighbors'] for right in self.overall_info], width)
+        rects2 = ax.bar(np.arange(len(self.overall_info)),
+                        [self.structured_info[right]['avg_neighbors'] if right in self.structured_info else 0
+                         for right in self.overall_info], width)
+        ax.legend((rects1[0], rects2[0]),['overall', 'structured'])
+        ax.set_xticks(np.arange(len(self.overall_info)))
+        ax.set_xticklabels(list(self.overall_info.keys()))
         ax.set_title("average number of neighbors for every column")
+        ax.set_xlabel('column name')
+        ax.set_ylabel('count')
 
 
 class STDDetector(OutlierDetector):
