@@ -26,7 +26,8 @@ class OutlierDetector(object):
 
     __metaclass__ = ABCMeta
     
-    def __init__(self, df, gt_idx=None, method='std', workers=4, t=0.05, tol=1e-6):
+    def __init__(self, df, gt_idx=None, method='std', workers=4, t=0.05, tol=1e-6, neighbor_size=100,
+                 knn=False):
         self.timer = GlobalTimer()
         self.method = method
         self.df = df
@@ -39,22 +40,71 @@ class OutlierDetector(object):
         self.tol = tol
         self.structured_info = {}
         self.overall_info = {}
+        self.eval = {}
+        self.neighbors = {}
+        self.neighbor_size = neighbor_size
+        if knn:
+            self.get_neighbors = self.get_neighbors_knn
+        else:
+            self.get_neighbors = self.get_neighbors_threshold
 
-    def get_neighbors(self, left):
-        pass
-        # X = self.df[left].values.reshape(-1,len(left))
-        # # calculate pairwise distance for each attribute
-        # distances = np.zeros((X.shape[0],X.shape[0]))
-        # for j in range(X.shape[1]):
-        #     dis = sklearn.metrics.pairwise_distances(X[:,j].reshape(-1,1),
-        #                                              metric='cityblock', n_jobs=self.workers)
-        #     # normalize distance
-        #     # avoid divided by zero
-        #     maxdis = max(self.tol, np.nanmax(dis))
-        #     dis = dis / maxdis
-        #     distances = (dis <= self.tol)*1 + distances
-        # has_same_left = (distances == X.shape[1])
-        # return has_same_left
+    def get_neighbors_threshold(self, left):
+        X = self.df[left].values.reshape(-1, len(left))
+        # calculate pairwise distance for each attribute
+        distances = np.zeros((X.shape[0],X.shape[0]))
+        for j, attr in enumerate(left):
+            # check if saved
+            if attr in self.neighbors:
+                distances = self.neighbors[attr] + distances
+                continue
+            # validate type and calculate cosine distance
+            if self.attributes[attr] == TEXT and self.embed_txt:
+                data = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
+                dis = sklearn.metrics.pairwise.cosine_distances(data)
+            elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
+                data = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
+                dis = sklearn.metrics.pairwise.cosine_distances(data)
+            else:
+                dis = sklearn.metrics.pairwise_distances(X[:,j].reshape(-1,1),
+                                                         metric='cityblock', n_jobs=self.workers)
+                # normalize distance
+                maxdis = max(self.tol, np.nanmax(dis))
+                dis = dis / maxdis
+            self.neighbors[attr] = (dis <= self.tol)*1
+            distances = self.neighbors[attr] + distances
+        has_same_left = (distances == X.shape[1])
+        return has_same_left
+
+    def get_neighbors_knn(self, left):
+        X = self.df[left].values.reshape(-1, len(left))
+        # calculate pairwise distance for each attribute
+        distances = np.zeros((X.shape[0],X.shape[0]))
+        for j, attr in enumerate(left):
+            # check if saved
+            if attr in self.neighbors:
+                distances = self.neighbors[attr] + distances
+                continue
+            # validate type and calculate cosine distance
+            if self.attributes[attr] == TEXT and self.embed_txt:
+                data = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
+                # normalize each vector to take cosine distance
+                data = data / np.linalg.norm(data, axis=1)
+                kdt = BallTree(data, metric='euclidean')
+            elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
+                data = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
+                kdt = BallTree(data, metric='euclidean')
+            else:
+                data = X[:,j].reshape(-1,1)
+                kdt = BallTree(data, metric='euclidean')
+
+            # find knn
+            indicies = kdt.query(data, k=self.neighbor_size, return_distance=False)
+            self.neighbors[attr] = np.zeros((X.shape[0],X.shape[0]))
+            for i in range(len(indicies)):
+                self.neighbors[attr][i, indicies[i, :]] = 1
+            distances = self.neighbors[attr] + distances
+        has_same_left = (distances == X.shape[1])
+        return has_same_left
 
     @abstractmethod
     def get_outliers(self, data, right=None):
@@ -85,7 +135,7 @@ class OutlierDetector(object):
         else:
             overall = self.run_attr(self.df.columns.values)
         self.overall = overall
-        self.timer.time_end("naive")
+        return self.timer.time_end("naive")
 
     def run_attr_structured(self, left, right):
         outliers = []
@@ -126,19 +176,20 @@ class OutlierDetector(object):
             if child not in self.structured_info:
                 continue
             self.structured_info[child]['precision'] = self.compute_precision(outlier, log=False)[0]
-        unique, count = np.unique(structured, return_counts=True)
-        outliers = list(unique[count > self.t*self.df.shape[0]])
-        self.structured = outliers
-        self.timer.time_end("structured")
+        self.structured = structured
+        return self.timer.time_end("structured")
 
-    def run_combined(self, parent_sets=None):
-        if self.overall is None:
-            self.run_overall()
-        if self.structured is None:
-            self.run_structured(parent_sets)
-        combined = list(self.structured)
+    def filter(self, structured, t=None):
+        if t is None:
+            t = self.t
+        unique, count = np.unique(structured, return_counts=True)
+        outliers = list(unique[count > t*self.df.shape[0]])
+        return outliers
+
+    def run_combined(self, structured):
+        combined = list(structured)
         combined.extend(self.overall)
-        self.combined = combined
+        return combined
 
     def compute_precision(self, outliers, log=True):
         outliers = set(outliers)
@@ -165,11 +216,14 @@ class OutlierDetector(object):
             print("Results for %s:"%title)
         prec, tp = self.compute_precision(outliers, log=log)
         rec = self.compute_recall(tp, outliers)
+        f1 = 0
         if log:
             if rec == 0:
                 print("f1: 0")
             else:
-                print("f1: %.4f"%(2 * (prec * rec) / (prec + rec)))
+                f1 = 2 * (prec * rec) / (prec + rec)
+                print("f1: %.4f" % f1)
+        return "%.4f,%.4f,%.4f"%(prec, rec, f1)
 
     def compute_recall(self, tp, outliers):
         if tp == 0:
@@ -195,12 +249,24 @@ class OutlierDetector(object):
         ax.set_ylabel('Precision')
         ax.set_title("[%s] precision for every column"%name)
 
-    def evaluate(self):
-        self.compute_f1(self.overall, "naive approach")
-        self.compute_f1(self.structured, "structure only")
-        self.compute_f1(self.combined, "enhance naive with structured")
-        self.visualize_precision(self.overall_info, 'overall')
-        self.visualize_precision(self.structured_info, 'structured')
+    def evaluate(self, log=True):
+        structured = self.filter(self.structured)
+        self.eval['overall'] = self.compute_f1(self.overall, "naive approach")
+        self.eval['structured'] = self.compute_f1(structured, "structure only")
+        self.eval['combined'] = self.compute_f1(self.run_combined(structured), "enhance naive with structured")
+        if log:
+            self.visualize_precision(self.overall_info, 'overall')
+            self.visualize_precision(self.structured_info, 'structured')
+
+    def evaluate_structured(self, t):
+        structured = self.filter(self.structured, t)
+        self.eval['structured'] = self.compute_f1(structured, "structure only", log=False)
+        self.eval['combined'] = self.compute_f1(self.run_combined(structured),
+                                                "enhance naive with structured",
+                                                log=False)
+
+    def evaluate_overall(self):
+        self.eval['overall'] = self.compute_f1(self.overall, "naive approach")
 
     def view_neighbor_info(self):
         for right in self.structured_info:
@@ -279,9 +345,10 @@ class SEVERDetector(OutlierDetector):
 
 class ScikitDetector(OutlierDetector):
     def __init__(self, df, method, attr=None, embed=None, gt_idx=None, embed_txt=False,
-                 t=0.05, workers=4, tol=1e-6, neighbor_size=100, knn=False,
-                 min_neighbors=50, **kwargs):
-        super(ScikitDetector, self).__init__(df, gt_idx, method, t=t, workers=workers, tol=tol)
+                 t=0.05, workers=4, tol=1e-6, min_neighbors=50, neighbor_size=100,
+                 knn=False, **kwargs):
+        super(ScikitDetector, self).__init__(df, gt_idx, method, t=t, workers=workers, tol=tol,
+                                             neighbor_size=neighbor_size, knn=knn)
         self.embed = embed
         self.attributes = attr
         self.embed_txt = embed_txt
@@ -292,13 +359,7 @@ class ScikitDetector(OutlierDetector):
         self.param, self.algorithm = self.get_default_setting()
         self.param.update(kwargs)
         self.encoder = self.create_one_hot_encoder(df)
-        self.neighbors = {}
-        self.neighbor_size = neighbor_size
         self.min_neighbors = min_neighbors
-        if knn:
-            self.get_neighbors = self.get_neighbors_knn
-        else:
-            self.get_neighbors = self.get_neighbors_threshold
 
     def get_default_setting(self):
         if self.method == "isf":
@@ -309,17 +370,22 @@ class ScikitDetector(OutlierDetector):
             alg = IsolationForest
         elif self.method == "ocsvm":
             param = {
-                'nu': 0.5,
+                'nu': 0.1,
                 'kernel': "rbf",
                 'gamma': 'auto'
             }
             alg = svm.OneClassSVM
         elif self.method == "lof":
             param = {
-                'n_neighbors': 100,
+                'n_neighbors': int(max(self.neighbor_size / 2, 2)),
                 'contamination': 0.1,
             }
             alg = LocalOutlierFactor
+        elif self.method == "ee":
+            param = {
+                'contamination': 0.1,
+            }
+            alg = EllipticEnvelope
         return param, alg
 
     def create_one_hot_encoder(self, df):
@@ -333,64 +399,6 @@ class ScikitDetector(OutlierDetector):
                     data = data.reshape(-1, 1)
                 encoders[attr] = OneHotModel(data)
         return encoders
-
-    def get_neighbors_threshold(self, left):
-        X = self.df[left].values.reshape(-1, len(left))
-        # calculate pairwise distance for each attribute
-        distances = np.zeros((X.shape[0],X.shape[0]))
-        for j, attr in enumerate(left):
-            # check if saved
-            if attr in self.neighbors:
-                distances = self.neighbors[attr] + distances
-                continue
-            # validate type and calculate cosine distance
-            if self.attributes[attr] == TEXT and self.embed_txt:
-                data = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
-                dis = sklearn.metrics.pairwise.cosine_distances(data)
-            elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
-                data = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
-                dis = sklearn.metrics.pairwise.cosine_distances(data)
-            else:
-                dis = sklearn.metrics.pairwise_distances(X[:,j].reshape(-1,1),
-                                                         metric='cityblock', n_jobs=self.workers)
-                # normalize distance
-                maxdis = max(self.tol, np.nanmax(dis))
-                dis = dis / maxdis
-            self.neighbors[attr] = (dis <= self.tol)*1
-            distances = self.neighbors[attr] + distances
-        has_same_left = (distances == X.shape[1])
-        return has_same_left
-
-    def get_neighbors_knn(self, left):
-        X = self.df[left].values.reshape(-1, len(left))
-        # calculate pairwise distance for each attribute
-        distances = np.zeros((X.shape[0],X.shape[0]))
-        for j, attr in enumerate(left):
-            # check if saved
-            if attr in self.neighbors:
-                distances = self.neighbors[attr] + distances
-                continue
-            # validate type and calculate cosine distance
-            if self.attributes[attr] == TEXT and self.embed_txt:
-                data = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
-                # normalize each vector to take cosine distance
-                data = data / np.linalg.norm(data, axis=1)
-                kdt = BallTree(data, metric='euclidean')
-            elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
-                data = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
-                kdt = BallTree(data, metric='euclidean')
-            else:
-                data = X[:,j].reshape(-1,1)
-                kdt = BallTree(data, metric='euclidean')
-
-            # find knn
-            indicies = kdt.query(data, k=self.neighbor_size, return_distance=False)
-            self.neighbors[attr] = np.zeros((X.shape[0],X.shape[0]))
-            for i in range(len(indicies)):
-                self.neighbors[attr][i, indicies[i, :]] = 1
-            distances = self.neighbors[attr] + distances
-        has_same_left = (distances == X.shape[1])
-        return has_same_left
 
     def get_outliers(self, data, right=None):
         mask = np.zeros((data.shape[0]))
