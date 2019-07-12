@@ -146,10 +146,12 @@ class OutlierDetector(object):
 
     def run_attr(self, right):
         attr_outliers = self.df.index.values[self.get_outliers(self.df[right], right)]
+        prec, tp = self.compute_precision(outliers=attr_outliers, log=False)
         self.overall_info[right] = {
             'avg_neighbors': self.df.shape[0],
             'total_outliers': len(attr_outliers),
-            'precision': self.compute_precision(outliers=attr_outliers, log=False)[0]
+            'precision': prec,
+            'recall': self.compute_recall(tp, outliers=attr_outliers, log=False)
         }
         return attr_outliers
 
@@ -207,7 +209,9 @@ class OutlierDetector(object):
             structured.extend(outlier)
             if child not in self.structured_info:
                 continue
-            self.structured_info[child]['precision'] = self.compute_precision(outlier, log=False)[0]
+            prec, tp = self.compute_precision(outlier, log=False)
+            self.structured_info[child]['precision'] = prec
+            self.structured_info[child]['recall'] = self.compute_recall(tp, outliers=outlier, log=False)
         self.structured = structured
         return self.timer.time_end("structured")
 
@@ -270,8 +274,8 @@ class OutlierDetector(object):
             print("with %d detected outliers, recall is: %.4f"%(len(outliers), recall))
         return recall
 
-    def visualize_precision(self, dict, name):
-        data = [dict[right]['precision'] if right in dict else 0 for right in self.overall_info]
+    def visualize_stat(self, dict, name, stat='precision'):
+        data = [dict[right][stat] if right in dict else 0 for right in self.overall_info]
         fig, ax = plt.subplots()
         ax.bar(np.arange(len(data)), data)
         ax.set_xticks(np.arange(len(data)))
@@ -280,8 +284,8 @@ class OutlierDetector(object):
             ax.text(i - 0.25, v + .03, "%.2f"%v)
         ax.set_xticklabels(list(self.overall_info.keys()))
         ax.set_xlabel('Column Name')
-        ax.set_ylabel('Precision')
-        ax.set_title("[%s] precision for every column"%name)
+        ax.set_ylabel(stat)
+        ax.set_title("[%s] %s for every column"%(name, stat))
 
     def evaluate(self, t=None, log=True):
         structured = self.filter(self.structured, t)
@@ -289,8 +293,10 @@ class OutlierDetector(object):
         self.eval['structured'] = self.compute_f1(structured, "structure only")
         self.eval['combined'] = self.compute_f1(self.run_combined(structured), "enhance naive with structured")
         if log:
-            self.visualize_precision(self.overall_info, 'overall')
-            self.visualize_precision(self.structured_info, 'structured')
+            self.visualize_stat(self.overall_info, 'overall', stat='precision')
+            self.visualize_stat(self.structured_info, 'structured', stat='precision')
+            self.visualize_stat(self.overall_info, 'overall', stat='recall')
+            self.visualize_stat(self.structured_info, 'structured', stat='recall')
 
     def evaluate_structured(self, t):
         structured = self.filter(self.structured, t)
