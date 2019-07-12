@@ -27,7 +27,7 @@ class OutlierDetector(object):
     __metaclass__ = ABCMeta
     
     def __init__(self, df, gt_idx=None, method='std', workers=4, t=0.05, tol=1e-6, neighbor_size=100,
-                 knn=False):
+                 knn=False, high_dim=False):
         self.timer = GlobalTimer()
         self.method = method
         self.df = df
@@ -44,7 +44,10 @@ class OutlierDetector(object):
         self.neighbors = {}
         self.neighbor_size = neighbor_size
         if knn:
-            self.get_neighbors = self.get_neighbors_knn
+            if not high_dim:
+                self.get_neighbors = self.get_neighbors_knn
+            else:
+                self.get_neighbors = self.get_neighbors_knn_highdim
         else:
             self.get_neighbors = self.get_neighbors_threshold
 
@@ -89,14 +92,11 @@ class OutlierDetector(object):
                 data = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
                 # normalize each vector to take cosine distance
                 data = data / np.linalg.norm(data, axis=1)
-                kdt = BallTree(data, metric='euclidean')
             elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
                 data = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
-                kdt = BallTree(data, metric='euclidean')
             else:
                 data = X[:,j].reshape(-1,1)
-                kdt = BallTree(data, metric='euclidean')
-
+            kdt = BallTree(data, metric='euclidean')
             # find knn
             indicies = kdt.query(data, k=self.neighbor_size, return_distance=False)
             self.neighbors[attr] = np.zeros((X.shape[0],X.shape[0]))
@@ -104,6 +104,39 @@ class OutlierDetector(object):
                 self.neighbors[attr][i, indicies[i, :]] = 1
             distances = self.neighbors[attr] + distances
         has_same_left = (distances == X.shape[1])
+        return has_same_left
+
+    def get_neighbors_knn_highdim(self, left):
+        X = self.df[left].values.reshape(-1, len(left))
+        # calculate pairwise distance for each attribute
+        distances = np.zeros((X.shape[0],X.shape[0]))
+        data = []
+        for j, attr in enumerate(left):
+            # check if saved
+            if attr in self.neighbors:
+                data.append(self.neighbors[attr])
+                continue
+            # validate type and calculate cosine distance
+            if self.attributes[attr] == TEXT and self.embed_txt:
+                embedded = self.embed[attr].get_embedding(X[:,j].reshape(-1,1))
+                # normalize each vector to take cosine distance
+                data.append(embedded / np.linalg.norm(embedded, axis=1))
+            elif self.attributes[attr] == CATEGORICAL or self.attributes[attr] == TEXT:
+                embedded = self.encoder[attr].get_embedding(X[:,j].reshape(-1,1))
+                data.append(embedded)
+            else:
+                data.append(X[:,j].reshape(-1,1))
+            self.neighbors[attr] = data[-1]
+        data = np.hstack(data)
+        if data.shape[0] != X.shape[0]:
+            print(data.shape)
+            raise Exception
+        kdt = BallTree(data, metric='euclidean')
+        # find knn
+        indicies = kdt.query(data, k=self.neighbor_size, return_distance=False)
+        for i in range(len(indicies)):
+            distances[i, indicies[i, :]] = 1
+        has_same_left = (distances == 1)
         return has_same_left
 
     @abstractmethod
@@ -123,7 +156,6 @@ class OutlierDetector(object):
     def run_all(self, parent_sets, separate=True):
         self.run_overall(separate)
         self.run_structured(parent_sets)
-        self.run_combined()
         print(self.timer.get_stat())
 
     def run_overall(self, separate=True):
@@ -215,25 +247,27 @@ class OutlierDetector(object):
         if title is not None:
             print("Results for %s:"%title)
         prec, tp = self.compute_precision(outliers, log=log)
-        rec = self.compute_recall(tp, outliers)
-        f1 = 0
+        rec = self.compute_recall(tp, outliers, log=log)
+        if rec*prec == 0:
+            f1 = 0
+        else:
+            f1 = 2 * (prec * rec) / (prec + rec)
         if log:
-            if rec == 0:
-                print("f1: 0")
-            else:
-                f1 = 2 * (prec * rec) / (prec + rec)
-                print("f1: %.4f" % f1)
+            print("f1: %.4f" % f1)
         return "%.4f,%.4f,%.4f"%(prec, rec, f1)
 
-    def compute_recall(self, tp, outliers):
+    def compute_recall(self, tp, outliers, log=True):
         if tp == 0:
-            print("with %d outliers in gt, recall is: 0"%(len(self.gt_idx)))
+            if log:
+                print("with %d outliers in gt, recall is: 0"%(len(self.gt_idx)))
             return 0
         if len(self.gt_idx) == 0:
-            print("since no outliers in the groud truth, recall is: 1"%(len(self.gt_idx)))
+            if log:
+                print("since no outliers in the groud truth, recall is: 1"%(len(self.gt_idx)))
             return 1
         recall = tp / len(self.gt_idx)
-        print("with %d detected outliers, recall is: %.4f"%(len(outliers), recall))
+        if log:
+            print("with %d detected outliers, recall is: %.4f"%(len(outliers), recall))
         return recall
 
     def visualize_precision(self, dict, name):
@@ -249,8 +283,8 @@ class OutlierDetector(object):
         ax.set_ylabel('Precision')
         ax.set_title("[%s] precision for every column"%name)
 
-    def evaluate(self, log=True):
-        structured = self.filter(self.structured)
+    def evaluate(self, t=None, log=True):
+        structured = self.filter(self.structured, t)
         self.eval['overall'] = self.compute_f1(self.overall, "naive approach")
         self.eval['structured'] = self.compute_f1(structured, "structure only")
         self.eval['combined'] = self.compute_f1(self.run_combined(structured), "enhance naive with structured")
@@ -266,7 +300,7 @@ class OutlierDetector(object):
                                                 log=False)
 
     def evaluate_overall(self):
-        self.eval['overall'] = self.compute_f1(self.overall, "naive approach")
+        self.eval['overall'] = self.compute_f1(self.overall, "naive approach", log=False)
 
     def view_neighbor_info(self):
         for right in self.structured_info:
@@ -346,9 +380,9 @@ class SEVERDetector(OutlierDetector):
 class ScikitDetector(OutlierDetector):
     def __init__(self, df, method, attr=None, embed=None, gt_idx=None, embed_txt=False,
                  t=0.05, workers=4, tol=1e-6, min_neighbors=50, neighbor_size=100,
-                 knn=False, **kwargs):
+                 knn=False, high_dim=False, **kwargs):
         super(ScikitDetector, self).__init__(df, gt_idx, method, t=t, workers=workers, tol=tol,
-                                             neighbor_size=neighbor_size, knn=knn)
+                                             neighbor_size=neighbor_size, knn=knn, high_dim=high_dim)
         self.embed = embed
         self.attributes = attr
         self.embed_txt = embed_txt
