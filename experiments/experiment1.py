@@ -62,17 +62,17 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
             detector = ScikitDetector(pf.session.ds.df, attr=pf.session.ds.dtypes,
                                       method=method, gt_idx=gt_idx,
                                       nu=nu, gamma='auto',
-                                      tol=tol, knn=knn, neighbor_size=size)
+                                      tol=tol, knn=knn, neighbor_size=size, high_dim=True)
         elif method == "isf":
             detector = ScikitDetector(pf.session.ds.df, attr=pf.session.ds.dtypes,
                                       method=method, gt_idx=gt_idx,
                                       contamination=nu,
-                                      tol=tol, knn=knn, neighbor_size=size)
+                                      tol=tol, knn=knn, neighbor_size=size, high_dim=True)
         else:
             detector = ScikitDetector(pf.session.ds.df, attr=pf.session.ds.dtypes,
                                       method=method, gt_idx=gt_idx,
                                       contamination=nu,
-                                      tol=tol, knn=knn, neighbor_size=size)
+                                      tol=tol, knn=knn, neighbor_size=size, high_dim=False)
         # parameter for od should not affect neighbors
         detector.neighbors = neighbors
         overall_time = detector.run_overall(parent_sets)
@@ -93,7 +93,7 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
 
 def main():
     method = sys.argv[1]
-    result = open('exp1/experiment1_results_{}.csv'.format(method), "a+")
+    result = open('exp1/experiment1_results_{}_2.csv'.format(method), "a+")
     result.write("dataname,method,t,tol,knn,size_neighbor,min_neighbor,s_p,s_r,s_f1,o_p,o_r,o_f1,c_p,c_r,c_f1,"
                  "overall_runtime,structured_runtime,combined_runtime,param\n")
     for dataname in ["yeast", "abalone"]:
