@@ -93,7 +93,7 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
 
 def main():
     method = sys.argv[1]
-    result = open('exp1/experiment1_results_{}_2.csv'.format(method), "a+")
+    result = open('exp1/experiment1_{}.csv'.format(method), "a+")
     result.write("dataname,method,t,tol,knn,size_neighbor,min_neighbor,s_p,s_r,s_f1,o_p,o_r,o_f1,c_p,c_r,c_f1,"
                  "overall_runtime,structured_runtime,combined_runtime,param\n")
     for dataname in ["yeast", "abalone"]:
@@ -102,7 +102,7 @@ def main():
             pf, parent_sets = get_constraints(tol, df)
             for knn in [True, False]:
                 if knn:
-                    for size in [50, 100, 300]:
+                    for size in [3,5,10]:
                         if tol==1e-6 and knn and size<=300 and dataname=="yeast":
                             continue
                         detector = OutlierDetector(df, neighbor_size=size, knn=knn)
