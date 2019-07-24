@@ -52,7 +52,8 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
         detector.evaluate_overall()
         # run with different min_neighbors
         #for min_neighbor in [10, 50]:
-        detector.min_neighbors = 1
+        min_neighbor = 1
+        detector.min_neighbors = min_neighbor
         structured_time = detector.run_structured(parent_sets)
         # run with different t
         for t in [0, 0.01, 0.05, 0.1]:
