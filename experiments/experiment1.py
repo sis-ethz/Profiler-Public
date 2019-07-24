@@ -89,7 +89,7 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
                       detector.eval['overall'],
                       detector.eval['combined'],
                       overall_time, structured_time,
-                      param)
+                      param, high_dim)
 
 def main():
     method = sys.argv[1]
