@@ -78,25 +78,22 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
         overall_time = detector.run_overall(parent_sets)
         detector.evaluate_overall()
         # run with different min_neighbors
-        for min_neighbor in [10, 50]:
-            detector.min_neighbors = min_neighbor
-            structured_time = detector.run_structured(parent_sets)
-            # run with different t
-            for t in [0, 0.01, 0.05, 0.1]:
-                detector.evaluate_structured(t)
-                write(f, dataname, method, t, tol, knn, size, min_neighbor,
-                      detector.eval['structured'],
-                      detector.eval['overall'],
-                      detector.eval['combined'],
-                      overall_time, structured_time,
-                      param, high_dim)
+        #for min_neighbor in [10, 50]:
+        detector.min_neighbors = min_neighbor
+        structured_time = detector.run_structured(parent_sets)
+        # run with different t
+        for t in [0, 0.01, 0.05, 0.1]:
+            detector.evaluate_structured(t)
+            write(f, dataname, method, t, tol, knn, size, min_neighbor,
+                  detector.eval['structured'],
+                  detector.eval['overall'],
+                  detector.eval['combined'],
+                  overall_time, structured_time,
+                  param, high_dim)
 
 def main():
     method = sys.argv[1]
-    high_dim = int(sys.argv[2]) == 1
     filename = 'exp1/experiment1_{}'.format(method)
-    if high_dim:
-      filename += "_high_dim"
     result = open(filename+".csv", "a+")
     result.write("dataname,method,t,tol,knn,size_neighbor,min_neighbor,s_p,s_r,s_f1,o_p,o_r,o_f1,c_p,c_r,c_f1,"
                  "overall_runtime,structured_runtime,combined_runtime,param,high_dim\n")
@@ -104,18 +101,17 @@ def main():
         df, gt_idx = load_data(dataname)
         for tol in [1e-6, 1e-4, 1e-2]:
             pf, parent_sets = get_constraints(tol, df)
-            for knn in [True, False]:
-                if knn:
-                    for size in [3,5,10]:
-                        if tol==1e-6 and knn and size<=300 and dataname=="yeast":
-                            continue
-                        detector = OutlierDetector(df, neighbor_size=size, knn=knn)
-                        run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result, 
-                          high_dim)
-                else:
-                    detector = OutlierDetector(df, tol=tol, knn=knn)
-                    run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result, 
-                      high_dim)
+            for high_dim in [True, False]:
+              for knn in [True, False]:
+                  if knn:
+                      for size in [3,5,10]:
+                          detector = OutlierDetector(df, neighbor_size=size, knn=knn)
+                          run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result, 
+                            high_dim)
+                  else:
+                      detector = OutlierDetector(df, tol=tol, knn=knn)
+                      run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result, 
+                        high_dim)
 
     result.close()
 

@@ -3,13 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-
-def read_add_col(name, val):
-    df = pd.read_csv('exp1/experiment1_results'+name+'.csv', index_col=False)
-    df['high_dim'] = [val]*df.shape[0]
-    return df
-
-
 def vis_recall_improv(df):
     fig, ax = plt.subplots()
     data = []
