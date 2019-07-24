@@ -27,33 +27,6 @@ def write(f, dataname, method, t, tol, knn, size_neighbor, min_neighbor, structu
     f.write(("{},"*15+"\n").format(dataname, method, t, tol, knn, size_neighbor, min_neighbor,
                                   structured, overall, combined, t1, t2, t1+t2, param, high_dim))
 
-def run_ocsvm(pf, tol, gt_idx, parent_sets, knn, size, f):
-    neighbors = None
-    for nu in [0.1, 0.2, 0.3, 0.4, 0.5]:
-        param = "nu_{}".format(nu)
-        detector = ScikitDetector(pf.session.ds.df, attr=pf.session.ds.dtypes,
-                                  method="ocsvm", gt_idx=gt_idx,
-                                  nu=nu, gamma='auto',
-                                  tol=tol, knn=knn, neighbor_size=size)
-        if neighbors is None:
-            # parameter for od should not affect neighbors
-            detector.neighbors = neighbors
-        overall_time = detector.run_overall(parent_sets)
-        detector.evaluate_overall()
-        # run with different min_neighbors
-        for min_neighbor in [10, 25, 50]:
-            detector.min_neighbors = min_neighbor
-            structured_time = detector.run_structured(parent_sets)
-            # run with different t
-            for t in [0, 0.01, 0.05, 0.1]:
-                detector.evaluate_structured(t)
-                write(f, "ocsvm", t, tol, knn, size, min_neighbor,
-                      detector.eval['structured'],
-                      detector.eval['overall'],
-                      detector.eval['combined'],
-                      overall_time, structured_time,
-                      param)
-
 def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size, f, high_dim):
     #for method in ["ocsvm", "isf"]:
     for nu in [0.1, 0.5]:
@@ -79,7 +52,7 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
         detector.evaluate_overall()
         # run with different min_neighbors
         #for min_neighbor in [10, 50]:
-        detector.min_neighbors = min_neighbor
+        detector.min_neighbors = 1
         structured_time = detector.run_structured(parent_sets)
         # run with different t
         for t in [0, 0.01, 0.05, 0.1]:
