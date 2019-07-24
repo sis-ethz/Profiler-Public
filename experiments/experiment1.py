@@ -23,9 +23,9 @@ def get_constraints(tol, df):
 
 
 def write(f, dataname, method, t, tol, knn, size_neighbor, min_neighbor, structured, overall, combined,
-          t1, t2, param):
-    f.write(("{},"*14+"\n").format(dataname, method, t, tol, knn, size_neighbor, min_neighbor,
-                                  structured, overall, combined, t1, t2, t1+t2, param))
+          t1, t2, param, high_dim):
+    f.write(("{},"*15+"\n").format(dataname, method, t, tol, knn, size_neighbor, min_neighbor,
+                                  structured, overall, combined, t1, t2, t1+t2, param, high_dim))
 
 def run_ocsvm(pf, tol, gt_idx, parent_sets, knn, size, f):
     neighbors = None
@@ -54,7 +54,7 @@ def run_ocsvm(pf, tol, gt_idx, parent_sets, knn, size, f):
                       overall_time, structured_time,
                       param)
 
-def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size, f):
+def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size, f, high_dim):
     #for method in ["ocsvm", "isf"]:
     for nu in [0.1, 0.5]:
         param = "nu_{}".format(nu)
@@ -62,17 +62,17 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
             detector = ScikitDetector(pf.session.ds.df, attr=pf.session.ds.dtypes,
                                       method=method, gt_idx=gt_idx,
                                       nu=nu, gamma='auto',
-                                      tol=tol, knn=knn, neighbor_size=size, high_dim=True)
+                                      tol=tol, knn=knn, neighbor_size=size, high_dim=high_dim)
         elif method == "isf":
             detector = ScikitDetector(pf.session.ds.df, attr=pf.session.ds.dtypes,
                                       method=method, gt_idx=gt_idx,
                                       contamination=nu,
-                                      tol=tol, knn=knn, neighbor_size=size, high_dim=True)
+                                      tol=tol, knn=knn, neighbor_size=size, high_dim=high_dim)
         else:
             detector = ScikitDetector(pf.session.ds.df, attr=pf.session.ds.dtypes,
                                       method=method, gt_idx=gt_idx,
                                       contamination=nu,
-                                      tol=tol, knn=knn, neighbor_size=size, high_dim=False)
+                                      tol=tol, knn=knn, neighbor_size=size, high_dim=high_dim)
         # parameter for od should not affect neighbors
         detector.neighbors = neighbors
         overall_time = detector.run_overall(parent_sets)
@@ -93,9 +93,13 @@ def run_od(method, dataname, neighbors, pf, tol, gt_idx, parent_sets, knn, size,
 
 def main():
     method = sys.argv[1]
-    result = open('exp1/experiment1_{}.csv'.format(method), "a+")
+    high_dim = int(sys.argv[2]) == 1
+    filename = 'exp1/experiment1_{}'.format(method)
+    if high_dim:
+      filename += "_high_dim"
+    result = open(filename+".csv", "a+")
     result.write("dataname,method,t,tol,knn,size_neighbor,min_neighbor,s_p,s_r,s_f1,o_p,o_r,o_f1,c_p,c_r,c_f1,"
-                 "overall_runtime,structured_runtime,combined_runtime,param\n")
+                 "overall_runtime,structured_runtime,combined_runtime,param,high_dim\n")
     for dataname in ["yeast", "abalone"]:
         df, gt_idx = load_data(dataname)
         for tol in [1e-6, 1e-4, 1e-2]:
@@ -106,10 +110,12 @@ def main():
                         if tol==1e-6 and knn and size<=300 and dataname=="yeast":
                             continue
                         detector = OutlierDetector(df, neighbor_size=size, knn=knn)
-                        run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result)
+                        run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result, 
+                          high_dim)
                 else:
                     detector = OutlierDetector(df, tol=tol, knn=knn)
-                    run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result)
+                    run_od(method, dataname, detector.neighbors, pf, tol, gt_idx, parent_sets, knn, size, result, 
+                      high_dim)
 
     result.close()
 
