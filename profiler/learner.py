@@ -1,10 +1,7 @@
 from sklearn.covariance import graphical_lasso
 from profiler.utility import find_all_subsets, visualize_heatmap
 from sksparse.cholmod import cholesky, analyze
-from itertools import permutations
 from scipy import sparse
-from tqdm import tqdm
-import pandas as pd
 from copy import deepcopy
 from profiler.graph import *
 
@@ -272,6 +269,11 @@ class StructureLearner(object):
         return r, min_score
 
     def construct_dag_from_record(self, R):
+        """
+        helper method for loh's algorithm
+        :param R:
+        :return:
+        """
         a, p, _, _, _ = R
         nodes = set(a.keys())
         for v in a.values():
@@ -289,6 +291,11 @@ class StructureLearner(object):
         return dag
 
     def recover_moral_graphs(self, inv_cov):
+        """
+        helper method for loh's algorithm
+        :param inv_cov:
+        :return:
+        """
         G = UndirectedGraph()
         idx_col = pd.DataFrame(zip(np.array(G.add_nodes(inv_cov.columns)), inv_cov.columns),
                                 columns=['idx','col'])
@@ -312,6 +319,11 @@ class StructureLearner(object):
         return G
 
     def nice_tree_decompose(self, TD):
+        """
+        helper method for loh's algorithm
+        :param TD:
+        :return:
+        """
         NTD = deepcopy(TD)
         # set a root with smallest bag
         root = -1
@@ -328,6 +340,13 @@ class StructureLearner(object):
         return NTD
 
     def find_record(self, NTD, node, from_idx):
+        """
+        helper method for loh's algorithm
+        :param NTD:
+        :param node:
+        :param from_idx:
+        :return:
+        """
         # find R with from_idx
         for r in self.R[node]:
             if r[3] == from_idx:
@@ -345,6 +364,12 @@ class StructureLearner(object):
             return (r1, r2)
 
     def score(self, j, S):
+        """
+        helper method for loh's algorithm
+        :param j:
+        :param S:
+        :return:
+        """
         S = list(S)
         if len(S) == 0:
             return self.est_cov.iloc[j,j]
@@ -355,6 +380,13 @@ class StructureLearner(object):
         return float(score)
 
     def dfs(self, G, tree, t):
+        """
+        helper method for loh's algorithm
+        :param G:
+        :param tree:
+        :param t:
+        :return:
+        """
         if t in self.R:
             return self.R[t]
         # R(a,p,s): a - parent sets; p: directed path, s:score

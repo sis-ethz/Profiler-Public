@@ -199,7 +199,7 @@ class LocalFasttextModel(object):
     def __init__(self, env, config, corpus):
         self.model = FastText(size=config['dim'], window=config['window'], min_count=1, batch_words=config['batch_words'])
         self.model.build_vocab(sentences=corpus)
-        self.model.train(sentences=corpus, total_examples=self.model.corpus_count, epochs=self.model.epochs,
+        self.model.train(sentences=corpus, total_examples=self.model.corpus_count, epochs=config['epochs'],
                          seed=env['seed'])
         self.dim = config['dim']
 
@@ -224,6 +224,7 @@ class EmbeddingEngine(object):
         self.ds = ds
         self.embedding_type = ATTRIBUTE_EMBEDDING
         self.models = None
+        # configuration used for training language model
         self.param = {
             'dim': 128,
             'type': ATTRIBUTE_EMBEDDING,
@@ -234,6 +235,7 @@ class EmbeddingEngine(object):
             'load': False,
             'batch_words': 100,
             'window': 3,
+            'epochs': 100,
             "mode": "sif",
             "concate": False,
         }
