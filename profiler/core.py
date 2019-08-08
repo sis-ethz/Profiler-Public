@@ -1,7 +1,7 @@
 from profiler.utility import GlobalTimer
-from profiler.dataset import Dataset
-from profiler.transformer import TransformEngine
-from profiler.embedding import EmbeddingEngine
+from profiler.data.dataset import Dataset
+from profiler.data.transformer import TransformEngine
+from profiler.data.embedding import EmbeddingEngine
 from profiler.learner import StructureLearner
 from profiler.globalvar import *
 import numpy as np
@@ -220,9 +220,9 @@ class Session(object):
         self.embed.train(**kwargs)
         self.timer.time_end('Load Embedding')
 
-    def load_training_data(self, multiplier=None):
+    def load_training_data(self, multiplier=None, difference=True):
         self.timer.time_start('Create Training Data')
-        self.trans_engine.create_training_data(multiplier=multiplier, embed=self.embed)
+        self.trans_engine.create_training_data(multiplier=multiplier, embed=self.embed, difference=difference)
         self.timer.time_end('Create Training Data')
 
     def learn_structure(self, **kwargs):
