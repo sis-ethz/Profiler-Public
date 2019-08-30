@@ -79,7 +79,7 @@ class SIF(object):
         # obtain word vector
         logger.info('[%s] create vector map'%attr)
         vec = wv.get_array_vectors(unique)
-        word_vocab = pd.DataFrame(list(zip(unique, list(range(len(corpus))))),
+        word_vocab = pd.DataFrame(list(zip(unique, list(range(len(all_words))))),
                                   columns=['word', 'idx']).set_index('word')
 
         def get_cell_vector(cell):
@@ -113,6 +113,7 @@ class SIF(object):
         vecs = self.vec[idxs, :]
         return vecs
 
+
 class FT(object):
 
     def __init__(self, env, config, data, attr):
@@ -134,6 +135,7 @@ class FT(object):
             vec = np.load(path+'vec.npy', allow_pickle=True)
             unique_cells = np.load(path+'vocab.npy', allow_pickle=True)
             vocab = pd.DataFrame(data=unique_cells, columns=['word']).reset_index().set_index('word')
+            vocab['index'] = vocab['index'].astype(int)
         return vec, vocab
 
     def build_vocab(self, data, attr):
@@ -151,11 +153,10 @@ class FT(object):
         all_words = np.hstack(corpus)
         unique, counts = np.unique(all_words, return_counts=True)
 
-
         # obtain word vector
         logger.info('[%s] create vector map'%attr)
         vec = wv.get_array_vectors(unique)
-        word_vocab = pd.DataFrame(list(zip(unique, list(range(len(corpus))))),
+        word_vocab = pd.DataFrame(list(zip(unique, list(range(len(all_words))))),
                                   columns=['word', 'idx']).set_index('word')
 
         def get_cell_vector(cell, max_length):
@@ -169,6 +170,7 @@ class FT(object):
                 v = np.zeros((max_length * len(vec[0]), ))
                 v[0:len(cell)*len(vec[0])] = vectors.reshape((-1,))
                 return list(v)
+
         # compute embedding for each cell
         if max_length == 1:
             unique_cells = unique
@@ -178,6 +180,8 @@ class FT(object):
 
         vocab = pd.DataFrame(data=unique_cells, columns=['word']).reset_index().set_index('word')
         vocab.loc[np.nan, 'index'] = vec.shape[0]
+        # IMPORTANT: convert index to integer instead of float
+        vocab['index'] = vocab['index'].astype(int)
         vec = np.vstack((vec, [-1]*vec.shape[1]))
 
         # (optional) save model
@@ -236,8 +240,8 @@ class EmbeddingEngine(object):
             'batch_words': 100,
             'window': 3,
             'epochs': 100,
-            "mode": "sif",
-            "concate": False,
+            "mode": "ft",
+            "concate": True,
         }
 
     def train(self, **kwargs):

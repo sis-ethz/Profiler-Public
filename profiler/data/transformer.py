@@ -40,6 +40,7 @@ def compute_differences_text(env, attr, left, right, embed):
     mask = left[(left == env['null']) | (right == env['null'])].index.values
 
     df = pd.DataFrame()
+
     left = embed.get_embedding(left, attr=attr).squeeze()
     right = embed.get_embedding(right, attr=attr).squeeze()
     sim = np.sum(np.multiply(left, right), axis=1) / (np.sqrt(np.sum(np.square(left), axis=1)) *
