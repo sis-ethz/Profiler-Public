@@ -130,18 +130,18 @@ class TransformEngine(object):
         self.ds.field = df.columns.values
         return df, np.unique(list(map(lambda x: "_".join(x.split('_')[0:-1]), to_drop))).tolist()
 
-    def estimate_sample_size(self):
+    def estimate_sample_size(self, sample_frac):
         # n > 1/eps^2*logp*(s+p) -> n > 1/eps^2*logp*((p-1)^2/2+p) = 1/eps^2*logp*(p^2/2 + 1/2)
         p = np.sum([len(op) for op in self.ds.operators.values()])
         min_n = 1/np.square(self.env['eps'])*np.log(p)*(np.square(p)/2+0.5)
-        multiplier = int(np.ceil(min_n / self.ds.df.shape[0]))
+        multiplier = int(np.ceil(min_n / (self.ds.df.shape[0] * self.ds.df.shape[1] * sample_frac)))
         logger.info("needs multiplier = %d to bound the error in inv cov estimation <= %.8f"%(multiplier, self.env['eps']))
         multiplier = min(max(1, multiplier), self.ds.df.shape[0]-1)
         self.env['eps'] = (np.sqrt(np.square(p-1)/2+p) / (multiplier*self.ds.df.shape[0]))
         logger.info("use multiplier = %d, and the bound is %.8f"%(multiplier, self.env['eps']))
         return multiplier
 
-    def create_training_data(self, multiplier=None, embed=None, difference=True):
+    def create_training_data(self, multiplier=None, sample_frac=1, embed=None, difference=True):
 
         if not difference:
             data, _ = self.check_singular(self.ds.df)
@@ -154,10 +154,10 @@ class TransformEngine(object):
 
         self.handle_nulls()
 
-        multiplier = self.get_multiplier(multiplier)
+        multiplier = self.get_multiplier(multiplier, sample_frac)
 
         logger.info("Draw Pairs")
-        left, right, self.left_idx, self.right_idx = self.create_pair_data(multiplier=multiplier)
+        left, right, self.left_idx, self.right_idx = self.create_pair_data(multiplier, sample_frac)
 
         logger.info("Computing Differences")
         data_count = self.compute_differences(left, right)
@@ -185,11 +185,11 @@ class TransformEngine(object):
         self.null_pb = null_counts / (self.training_data.shape[0] * len(self.ds.field))
         logger.info("estimated missing data probability in training data is %.4f" % self.null_pb)
 
-    def get_multiplier(self, multiplier):
+    def get_multiplier(self, multiplier, sample_frac):
         if multiplier is None:
-            multiplier = self.estimate_sample_size()
+            multiplier = self.estimate_sample_size(sample_frac)
         # conservative sample size, did not multiply by number of attributes since there may have repeated samples
-        self.sample_size = multiplier * self.ds.df.shape[0]
+        self.sample_size = multiplier * int(np.ceil(self.ds.df.shape[0] * sample_frac / self.ds.df.shape[1]))
         return multiplier
 
     def handle_nulls(self):
@@ -198,13 +198,16 @@ class TransformEngine(object):
         if self.env['null_policy'] == SKIP:
             self.ds.df.dropna(how="any", axis=0, inplace=True)
 
-    def create_pair_data(self, multiplier):
+    def create_pair_data(self, multiplier, sample_frac):
         multiplier = max(1, int(np.ceil(multiplier/self.ds.field.shape[0])))
         # shift and concate
         lefts = []
         rights = []
         for attr in tqdm(self.ds.field):
-            base_table = self.ds.df.sort_values(by=attr)
+            if sample_frac == 1:
+                base_table = self.ds.df.sort_values(by=attr)
+            else:
+                base_table = self.ds.df.sample(frac=sample_frac).sort_values(by=attr)
             left = [base_table] * multiplier
             right = [base_table.iloc[list(range(i+1, base_table.shape[0])) + list(range(i+1)), :].reset_index(
                 drop=True) for i in range(multiplier)]

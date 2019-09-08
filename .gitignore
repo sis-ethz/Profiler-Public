@@ -8,3 +8,6 @@
 **-checkpoint.ipynb
 tutorials/data/TECHospital.csv
 datasets/*
+tutorials/data/large_data/
+tutorials/data/nypd/
+tutorials/data/chicago_taxi/
