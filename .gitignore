@@ -11,3 +11,8 @@ datasets/*
 tutorials/data/large_data/
 tutorials/data/nypd/
 tutorials/data/chicago_taxi/
+exp_reproduce/
+tutorials/Exp_reproduce/
+tutorials/test.ipynb
+tutorials/pandas_test.ipynb
+tutorials/**.png

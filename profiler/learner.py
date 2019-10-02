@@ -79,17 +79,17 @@ class StructureLearner(object):
         return Rs
 
     def visualize_inverse_covariance(self):
-        visualize_heatmap(self.inv_cov, title="Inverse Covariance Matrix")
+        visualize_heatmap(self.inv_cov, title="Inverse Covariance Matrix", filename="Inverse Covariance Matrix")
 
     def visualize_covariance(self):
-        visualize_heatmap(self.cov, title="Covariance Matrix")
+        visualize_heatmap(self.cov, title="Covariance Matrix", filename="Covariance Matrix")
 
     def visualize_autoregression(self):
         if self.B is not None:
-            visualize_heatmap(self.B, title="Autoregression Matrix")
+            visualize_heatmap(self.B, title="Autoregression Matrix", filename="Autoregression Matrix")
         else:
             for i, B in enumerate(self.Bs):
-                visualize_heatmap(B, title="Autoregression Matrix (Part %d)"%(i+1))
+                visualize_heatmap(B, title="Autoregression Matrix (Part %d)"%(i+1), filename="Autoregression Matrix (Part %d)"%(i+1))
 
     def training_data_fd_violation(self, pair):
         left, right = pair
@@ -297,8 +297,8 @@ class StructureLearner(object):
         :return:
         """
         G = UndirectedGraph()
-        idx_col = pd.DataFrame(zip(np.array(G.add_nodes(inv_cov.columns)), inv_cov.columns),
-                                columns=['idx','col'])
+        idx_col = pd.DataFrame(list(zip(np.array(G.add_nodes(inv_cov.columns)), inv_cov.columns)),
+                                columns=['idx','col']) # former version: without list(), due to higher version of pandas
         self.col_to_idx = idx_col.set_index('col')
         self.idx_to_col = idx_col.set_index('idx')
         for i, attr in enumerate(inv_cov):

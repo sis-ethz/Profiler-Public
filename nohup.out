@@ -1,0 +1,72 @@
+[I 11:39:42.057 NotebookApp] Serving notebooks from local directory: /mnt/c/Users/Yunjia/OneDrive - UW-Madison/Database/Profiler/Profiler-Public
+[I 11:39:42.057 NotebookApp] 0 active kernels 
+[I 11:39:42.057 NotebookApp] The Jupyter Notebook is running at: http://localhost:8888/
+[I 11:39:42.057 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[W 11:39:42.060 NotebookApp] No web browser found: could not locate runnable browser.
+[W 11:39:57.184 NotebookApp] 404 GET /api/kernels/e176a71c-bfd0-4ca5-83dc-89c609d39568/channels?session_id=72ABB4ED803A4B159CFEB1CA7A41A117 (127.0.0.1): Kernel does not exist: e176a71c-bfd0-4ca5-83dc-89c609d39568
+[W 11:39:57.438 NotebookApp] 404 GET /api/kernels/e176a71c-bfd0-4ca5-83dc-89c609d39568/channels?session_id=72ABB4ED803A4B159CFEB1CA7A41A117 (127.0.0.1) 284.55ms referer=None
+[W 11:40:30.156 NotebookApp] Replacing stale connection: e176a71c-bfd0-4ca5-83dc-89c609d39568:72ABB4ED803A4B159CFEB1CA7A41A117
+[W 11:45:35.170 NotebookApp] Replacing stale connection: e176a71c-bfd0-4ca5-83dc-89c609d39568:72ABB4ED803A4B159CFEB1CA7A41A117
+[I 13:12:29.231 NotebookApp] Kernel started: 51390fde-798f-4e19-aef0-44f87a5f73b3
+[W 13:24:42.443 NotebookApp] Notebook tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb is not trusted
+[I 13:24:42.994 NotebookApp] Kernel started: 47d4c399-fc8c-4f79-922d-885619c8cd37
+[I 13:26:43.002 NotebookApp] Saving file at /tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[W 13:26:43.003 NotebookApp] Saving untrusted notebook tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[I 13:28:42.981 NotebookApp] Saving file at /tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[W 13:28:42.982 NotebookApp] Saving untrusted notebook tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[I 13:28:45.094 NotebookApp] Saving file at /tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[W 13:28:45.095 NotebookApp] Saving untrusted notebook tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[I 13:29:06.348 NotebookApp] Creating new notebook in /tutorials
+[I 13:29:07.409 NotebookApp] Kernel started: 876b9838-9e5e-4feb-8919-c178f98503a3
+[I 13:30:43.903 NotebookApp] Saving file at /tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[W 13:30:43.904 NotebookApp] Saving untrusted notebook tutorials/Tutorial3_Chicago-taxi-train-analysis.ipynb
+[I 13:30:46.637 NotebookApp] Kernel restarted: 876b9838-9e5e-4feb-8919-c178f98503a3
+[I 13:31:07.868 NotebookApp] Saving file at /tutorials/Untitled.ipynb
+[W 14:12:08.153 NotebookApp] Notebook tutorials/Tutorial1_Hospital (Continous).ipynb is not trusted
+[I 14:12:08.695 NotebookApp] Kernel started: 8de22fd1-bf12-42df-8bac-893f238b7157
+[I 14:14:08.876 NotebookApp] Saving file at /tutorials/Tutorial1_Hospital (Continous).ipynb
+[W 14:14:08.877 NotebookApp] Saving untrusted notebook tutorials/Tutorial1_Hospital (Continous).ipynb
+[I 14:14:30.872 NotebookApp] Saving file at /tutorials/Tutorial1_Hospital.ipynb
+[C 14:14:34.148 NotebookApp] received signal 15, stopping
+[I 14:14:34.153 NotebookApp] Shutting down kernels
+[I 14:14:34.657 NotebookApp] Kernel shutdown: 51390fde-798f-4e19-aef0-44f87a5f73b3
+[I 14:14:34.658 NotebookApp] Kernel shutdown: 47d4c399-fc8c-4f79-922d-885619c8cd37
+[I 14:14:34.659 NotebookApp] Kernel shutdown: 876b9838-9e5e-4feb-8919-c178f98503a3
+[I 14:14:34.660 NotebookApp] Kernel shutdown: 8de22fd1-bf12-42df-8bac-893f238b7157
+./start_notebook.sh: 1: ./start_notebook.sh: Bad substitution
+Profiler home directory: /mnt/c/Users/Yunjia/OneDrive - UW-Madison/Database/Profiler/Profiler-Public
+/root/anaconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/mnt/c/Users/Yunjia/OneDrive - UW-Madison/Database/Profiler/Profiler-Public
+Environment variables set!
+[I 23:16:13.091 NotebookApp] Serving notebooks from local directory: /mnt/c/Users/Yunjia/OneDrive - UW-Madison/Database/Profiler/Profiler-Public
+[I 23:16:13.091 NotebookApp] 0 active kernels 
+[I 23:16:13.091 NotebookApp] The Jupyter Notebook is running at: http://localhost:8888/
+[I 23:16:13.091 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[I 23:16:14.147 NotebookApp] Interrupted...
+[I 23:16:14.148 NotebookApp] Shutting down kernels
+./start_notebook.sh: 1: ./start_notebook.sh: Bad substitution
+Profiler home directory: /mnt/c/Users/Yunjia/OneDrive - UW-Madison/Database/Profiler/Profiler-Public
+/root/anaconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/mnt/c/Users/Yunjia/OneDrive - UW-Madison/Database/Profiler/Profiler-Public
+Environment variables set!
+[I 23:21:47.960 NotebookApp] Serving notebooks from local directory: /mnt/c/Users/Yunjia/OneDrive - UW-Madison/Database/Profiler/Profiler-Public
+[I 23:21:47.960 NotebookApp] 0 active kernels 
+[I 23:21:47.960 NotebookApp] The Jupyter Notebook is running at: http://localhost:8888/
+[I 23:21:47.960 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[W 23:22:13.276 NotebookApp] 404 GET /api/kernels/a7f3bbdb-ac48-4fd0-8b41-1db8779fdaf2/channels?session_id=4A984BDC3AD94EBA8DCC8FE40550D0AD (127.0.0.1): Kernel does not exist: a7f3bbdb-ac48-4fd0-8b41-1db8779fdaf2
+[W 23:22:13.293 NotebookApp] 404 GET /api/kernels/a7f3bbdb-ac48-4fd0-8b41-1db8779fdaf2/channels?session_id=4A984BDC3AD94EBA8DCC8FE40550D0AD (127.0.0.1) 19.37ms referer=None
+[W 23:22:38.261 NotebookApp] 404 GET /api/kernels/15672d21-8149-4798-ab9e-4ea663739750/channels?session_id=09FB9CF735E64C949EAED2D0D439F5C7 (127.0.0.1): Kernel does not exist: 15672d21-8149-4798-ab9e-4ea663739750
+[W 23:22:38.262 NotebookApp] 404 GET /api/kernels/15672d21-8149-4798-ab9e-4ea663739750/channels?session_id=09FB9CF735E64C949EAED2D0D439F5C7 (127.0.0.1) 1.76ms referer=None
+[W 23:22:38.606 NotebookApp] 404 GET /api/kernels/3dc6a759-d146-4a0d-b0b2-675b908f3561/channels?session_id=EC8E43383CF7456E8D1D2219B89EA5FD (127.0.0.1): Kernel does not exist: 3dc6a759-d146-4a0d-b0b2-675b908f3561
+[W 23:22:38.606 NotebookApp] 404 GET /api/kernels/3dc6a759-d146-4a0d-b0b2-675b908f3561/channels?session_id=EC8E43383CF7456E8D1D2219B89EA5FD (127.0.0.1) 1.64ms referer=None
+[W 23:23:18.268 NotebookApp] Replacing stale connection: a7f3bbdb-ac48-4fd0-8b41-1db8779fdaf2:4A984BDC3AD94EBA8DCC8FE40550D0AD
+[I 23:45:56.919 NotebookApp] Kernel started: 4f3ec980-6a80-488c-90d3-5386fbe6da8f
+[I 00:28:41.136 NotebookApp] Kernel started: 71d8761d-1c8a-469f-9cbe-eb11f3c4161c
+[I 00:30:41.444 NotebookApp] Saving file at /tutorials/test.ipynb
+[I 00:32:42.265 NotebookApp] Saving file at /tutorials/test.ipynb
+[I 00:34:41.414 NotebookApp] Saving file at /tutorials/test.ipynb
+[I 00:40:41.419 NotebookApp] Saving file at /tutorials/test.ipynb
+[I 00:42:41.415 NotebookApp] Saving file at /tutorials/test.ipynb
+[I 00:46:41.414 NotebookApp] Saving file at /tutorials/test.ipynb
+[I 00:48:41.414 NotebookApp] Saving file at /tutorials/test.ipynb
+[I 00:54:41.416 NotebookApp] Saving file at /tutorials/test.ipynb
+[W 10:39:47.618 NotebookApp] WebSocket ping timeout after 95745 ms.
+[W 10:39:57.665 NotebookApp] WebSocket ping timeout after 90000 ms.

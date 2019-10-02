@@ -85,13 +85,6 @@ def compute_differences_categorical(env, attr, left, right):
     df = pd.DataFrame()
     mask = left[(left == env['null']) | (right == env['null'])].index.values
     df[attr] = np.equal(left, right)*1
-    
-    # ==================================
-    # test if there are any equals for random permutation
-    print("categorical attributes equal number:")
-    print("equal: %f" % np.sum(np.equal(left, right)*1), "total number: %f" % len(left))
-    # end test
-    # ==================================
 
     # if the values are categorially equal to each other 
     # handle null

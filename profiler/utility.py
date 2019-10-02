@@ -6,15 +6,15 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def visualize_heatmap(heatmap, title=None, filename="heatmap.png", save=False):
+def visualize_heatmap(heatmap, title=None, filename="heatmap.png", save=True, dir="./"):
     import seaborn as sns
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(10,8))
-    snsplt = sns.heatmap(heatmap, ax=ax, cmap=sns.color_palette("RdBu_r", 1000), center=0)
+    snsplt = sns.heatmap(heatmap, ax=ax, cmap="RdBu_r", center=0) # snsplt = sns.heatmap(heatmap, ax=ax, cmap=sns.color_palette("RdBu_r", 1000), center=0)
     if title:
         snsplt.set_title(title)
     if save:
-        snsplt.get_figure().savefig(filename, bbox_inches='tight')
+        snsplt.get_figure().savefig(dir+filename, bbox_inches='tight')
     plt.show()
 
 
