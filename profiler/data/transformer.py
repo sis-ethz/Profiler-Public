@@ -5,14 +5,39 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 import logging
+from sklearn import preprocessing
+from scipy.cluster.vq import vq, kmeans, whiten
+import sys
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def normalized_sim(diff):
-    return 1 - np.abs(diff) / np.nanmax(np.abs(diff))
+def normalized_sim(diff, threshold_type=2):
+    if threshold_type == 1:
+        np_diff = diff.values
+        scaler = preprocessing.StandardScaler()
+        np_diff = scaler.fit_transform(np_diff.reshape(-1,1))
+        zero_trans = scaler.transform([[0]])
+        for i in range(np_diff.shape[1]):
+            if zero_trans[i] >=0 :
+                np_diff[np_diff[:, i]>=0] = 0
+            else:
+                np_diff[np_diff[:, i]<0] = 0
+        ret1 = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+    elif threshold_type == 2:
+        np_diff = np.abs(diff.values.flatten())
+        np_diff = np.nan_to_num(np_diff).astype(np.float64)
+        centers, _ = kmeans(np_diff, k_or_guess=2)
+        np_diff[ np_diff <= np.mean(centers) ] = 0
+        ret1 = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+    else:
+        ret1 = 1 - np.abs(diff) / np.nanmax(np.abs(diff))
+
+    return ret1
+
+    # return 1 - np.abs(diff) / np.nanmax(np.abs(diff))
 
 
 def compute_differences(attr, dtype, env, operators, left, right, embed):
@@ -60,14 +85,22 @@ def compute_differences_categorical(env, attr, left, right):
     df = pd.DataFrame()
     mask = left[(left == env['null']) | (right == env['null'])].index.values
     df[attr] = np.equal(left, right)*1
+    
+    # ==================================
+    # test if there are any equals for random permutation
+    print("categorical attributes equal number:")
+    print("equal: %f" % np.sum(np.equal(left, right)*1), "total number: %f" % len(left))
+    # end test
+    # ==================================
 
+    # if the values are categorially equal to each other 
     # handle null
     df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
     return df, len(mask)
 
 
 def compute_differences_numerical(env, attr, operators, left, right):
-    diff = left - right
+    diff = left - right # directly calculate the deduction of left and right
     return compute_differences_numerical_helper(env, attr, operators, left, diff)
 
 
@@ -198,16 +231,28 @@ class TransformEngine(object):
         if self.env['null_policy'] == SKIP:
             self.ds.df.dropna(how="any", axis=0, inplace=True)
 
-    def create_pair_data(self, multiplier, sample_frac):
+    # Edited on 09/28/2019 by Yunjia
+    # added a para for indicating if the training set should be sorted
+    # the default attr_sort should be False (random permutation for every attr)
+    # If attr_sort=False, should use lower sparsity configuration
+    def create_pair_data(self, multiplier, sample_frac, attr_sort=False):
         multiplier = max(1, int(np.ceil(multiplier/self.ds.field.shape[0])))
         # shift and concate
         lefts = []
         rights = []
+        # print("sample frac = ",sample_frac)
         for attr in tqdm(self.ds.field):
             if sample_frac == 1:
-                base_table = self.ds.df.sort_values(by=attr)
+                if attr_sort:
+                    base_table = self.ds.df.sort_values(by=attr)
+                else:
+                    base_table = self.ds.df.reindex(np.random.permutation(self.ds.df.index))         
             else:
-                base_table = self.ds.df.sample(frac=sample_frac).sort_values(by=attr)
+                if attr_sort:
+                    base_table = self.ds.df.sample(frac=sample_frac).sort_values(by=attr)
+                else:    
+                    base_table = self.ds.df.sample(frac=sample_frac)
+                    base_table = base_table.reindex(np.random.permutation(base_table.index))
             left = [base_table] * multiplier
             right = [base_table.iloc[list(range(i+1, base_table.shape[0])) + list(range(i+1)), :].reset_index(
                 drop=True) for i in range(multiplier)]
