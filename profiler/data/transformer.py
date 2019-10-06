@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def normalized_sim(diff, threshold_type=2):
+def normalized_sim(diff, threshold_type=0):
     if threshold_type == 1:
+        # standardizing and set all value below or above as zeros
         np_diff = diff.values
         scaler = preprocessing.StandardScaler()
         np_diff = scaler.fit_transform(np_diff.reshape(-1,1))
@@ -25,19 +26,23 @@ def normalized_sim(diff, threshold_type=2):
                 np_diff[np_diff[:, i]>=0] = 0
             else:
                 np_diff[np_diff[:, i]<0] = 0
-        ret1 = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+        ret = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
     elif threshold_type == 2:
+        # standardizing and take abs value
+        np_diff = diff.values
+        scaler = preprocessing.StandardScaler()
+        np_diff = scaler.fit_transform(np_diff.reshape(-1,1))
+        ret = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+    elif threshold_type == 3:
+        # k-means to seperate and assign zeros to values within the same class of 0 
         np_diff = np.abs(diff.values.flatten())
         np_diff = np.nan_to_num(np_diff).astype(np.float64)
         centers, _ = kmeans(np_diff, k_or_guess=2)
         np_diff[ np_diff <= np.mean(centers) ] = 0
-        ret1 = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+        ret = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
     else:
-        ret1 = 1 - np.abs(diff) / np.nanmax(np.abs(diff))
-
-    return ret1
-
-    # return 1 - np.abs(diff) / np.nanmax(np.abs(diff))
+        ret = 1 - np.abs(diff) / np.nanmax(np.abs(diff))
+    return ret
 
 
 def compute_differences(attr, dtype, env, operators, left, right, embed):
@@ -58,7 +63,10 @@ def compute_differences(attr, dtype, env, operators, left, right, embed):
     return df, c
 
 
-def compute_differences_text(env, attr, left, right, embed):
+def compute_differences_text(env, attr, left, right, embed, sim_type=1):
+    # sim_type = 1: cosine similarity between text
+    # sim_type = 2 / else: Euclidean distance between text
+
     if embed is None:
         raise Exception('ERROR while creating training data. Embedding model is none')
     # handle null
@@ -68,8 +76,15 @@ def compute_differences_text(env, attr, left, right, embed):
 
     left = embed.get_embedding(left, attr=attr).squeeze()
     right = embed.get_embedding(right, attr=attr).squeeze()
-    sim = np.sum(np.multiply(left, right), axis=1) / (np.sqrt(np.sum(np.square(left), axis=1)) *
-                                               np.sqrt(np.sum(np.square(right), axis=1)))
+    
+    if sim_type == 1:
+        # Cosine similarity
+        sim = np.sum(np.multiply(left, right), axis=1) / (np.sqrt(np.sum(np.square(left), axis=1)) *
+                                                np.sqrt(np.sum(np.square(right), axis=1)))
+    else:
+        # Euclidean distance
+        sub = left - right
+        sim = np.sqrt(np.sum(np.multiply(sub, sub), axis=1))
 
     if env['continuous']:
         df[attr] = sim
