@@ -4,6 +4,7 @@ from sksparse.cholmod import cholesky, analyze
 from scipy import sparse
 from copy import deepcopy
 from profiler.graph import *
+from scipy.cluster.vq import vq, kmeans, whiten
 
 
 logging.basicConfig()
@@ -78,8 +79,35 @@ class StructureLearner(object):
 
         return Rs
 
+    # modified by Yunjia on 10/07/2019
+    # output all the attrs that are involed in the FD
     def visualize_inverse_covariance(self):
         visualize_heatmap(self.inv_cov, title="Inverse Covariance Matrix", filename="Inverse Covariance Matrix")
+
+        # clean up the diagnal for sum up 
+        np_inv = self.inv_cov.values
+        for i in range(len(np_inv)):
+            np_inv[i,i] = 0
+            
+        np_inv_sum = np.sum(np.abs(self.inv_cov.values), axis=0)
+        np_inv_sum = np.nan_to_num(np_inv_sum).astype(np.float64)
+        
+        
+        # manual threshold
+        threshold = len(np_inv_sum) * 2
+        # dynamic threshold using k-means to split it into small values and large values        
+        # centers, _ = kmeans(np_inv_sum, k_or_guess=2)
+        # threshold = np.mean(centers)
+        # traditioinally set all attributes to 0
+        # threshold = 1
+
+        print("threshold = ", threshold)
+        print("sum = ", np_inv_sum)
+        print("attr = ", self.inv_cov.columns)
+        
+        print("Attr w/o dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum <= threshold)])
+        print("\n\nAttr w/ dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum > threshold)])
+
 
     def visualize_covariance(self):
         visualize_heatmap(self.cov, title="Covariance Matrix", filename="Covariance Matrix")

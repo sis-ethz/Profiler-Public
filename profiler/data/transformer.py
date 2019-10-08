@@ -63,7 +63,7 @@ def compute_differences(attr, dtype, env, operators, left, right, embed):
     return df, c
 
 
-def compute_differences_text(env, attr, left, right, embed, sim_type=1):
+def compute_differences_text(env, attr, left, right, embed, sim_type=2):
     # sim_type = 1: cosine similarity between text
     # sim_type = 2 / else: Euclidean distance between text
 
@@ -85,6 +85,8 @@ def compute_differences_text(env, attr, left, right, embed, sim_type=1):
         # Euclidean distance
         sub = left - right
         sim = np.sqrt(np.sum(np.multiply(sub, sub), axis=1))
+        scaler = preprocessing.MinMaxScaler()
+        sim = scaler.fit_transform(sim.reshape([len(sim),1])).flatten()
 
     if env['continuous']:
         df[attr] = sim
