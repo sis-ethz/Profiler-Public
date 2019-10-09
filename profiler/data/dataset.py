@@ -80,7 +80,7 @@ class Dataset(object):
             # strip whitespaces, and convert to lowercase
             if np.issubdtype(t, np.number) or np.issubdtype(t, np.datetime64):
                 continue
-            self.df.iloc[:, i] = self.df.iloc[:, i].str.strip().str.lower()
+            self.df.iloc[:, i] = self.df.iloc[:, i].astype(str).str.strip().str.lower()
 
     def replace_null(self, attr=None):
         def replace_null_helper(attr):

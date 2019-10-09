@@ -234,8 +234,9 @@ class Session(object):
 
     def get_dependencies(self, heatmap=None, score="training_data_vio_ratio"):
         self.timer.time_start('Get Dependencies')
-        results = self.struct_engine.get_dependencies(heatmap=heatmap, score=score)
+        results = self.struct_engine.get_dependencies(heatmap=heatmap, score=score, write_to='./FDs')
         self.timer.time_end('Get Dependencies')
+        print(results)
         return results
 
     def visualize_covariance(self):

@@ -1,0 +1,2 @@
+left_distance -> right_weight (0.2267414387213064)
+left_distance -> left_weight (0.1789115025897446)

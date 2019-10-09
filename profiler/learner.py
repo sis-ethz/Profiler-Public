@@ -145,17 +145,23 @@ class StructureLearner(object):
         err = np.sum(np.square(offset - bias)) / float(self.session.trans_engine.training_data.shape[0])
         return err, bias
 
-    def get_dependencies(self, heatmap, score):
+    def get_dependencies(self, heatmap, score, write_to=None):
 
-        def get_dependencies_helper(U_hat, s_func):
+        def get_dependencies_helper(U_hat, s_func, write_to=None):
             parent_sets = {}
+            if write_to is not None:
+                fd_file = open(write_to + ".txt", 'w')
+                attr_file = open(write_to + "_attr.txt", 'w')
             for i, attr in enumerate(U_hat):
                 columns = U_hat.columns.values[0:i]
                 parents = columns[(U_hat.iloc[0:i, i] > 0).values]
                 parent_sets[attr] = parents
                 if len(parents) > 0:
                     s, _ = s_func((parents, attr))
+                    fd_file.write("{} -> {} ({})\n".format(",".join(parents), attr, s))
+                    attr_file.write(attr + "\n")
                     print("{} -> {} ({})".format(",".join(parents), attr, s))
+            fd_file.close()
             return parent_sets
 
         if score == "training_data_fd_vio_ratio":
@@ -167,13 +173,13 @@ class StructureLearner(object):
 
         if heatmap is None:
             if self.B is not None:
-                parent_sets = get_dependencies_helper(self.B, scoring_func)
+                parent_sets = get_dependencies_helper(self.B, scoring_func, write_to=write_to)
             else:
                 parent_sets = {}
                 for B in self.Bs:
-                    parent_sets.update(get_dependencies_helper(B, scoring_func))
+                    parent_sets.update(get_dependencies_helper(B, scoring_func, write_to=write_to))
         else:
-            parent_sets = get_dependencies_helper(heatmap, scoring_func)
+            parent_sets = get_dependencies_helper(heatmap, scoring_func, write_to=write_to)
         return parent_sets
 
     @staticmethod
