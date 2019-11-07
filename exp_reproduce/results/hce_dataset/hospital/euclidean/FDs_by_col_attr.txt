@@ -1,0 +1,10 @@
+Stateavg
+ProviderNumber
+PhoneNumber
+EmergencyService
+Score
+Sample
+MeasureName
+HospitalOwner
+MeasureCode
+CountyName

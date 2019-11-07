@@ -1,0 +1,16 @@
+MeasureName
+HospitalType
+Stateavg
+HospitalName
+Address1
+City
+CountyName
+PhoneNumber
+ZipCode
+ProviderNumber
+HospitalOwner
+State
+EmergencyService
+Sample
+Condition
+Score

@@ -1,0 +1,4 @@
+Burglary -> MaryCalls (0.02003314285714311)
+Burglary,MaryCalls -> Alarm (0.0032138205724837926)
+Alarm -> JohnCalls (0.045025457161382086)
+Alarm -> Earthquake (0.010594750000000012)

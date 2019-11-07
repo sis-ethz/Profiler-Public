@@ -1,0 +1,211 @@
+university name,state,location,control,no-of-students thous,male:female ratio, student:faculty ratio,sat verbal,sat math,percent-financial-aid, no-applicants thous,percent-admittance,percent-enrolled,academics scale:1-5,social scale:1-5, quality-of-life scale:1-5,academic-emphasis
+boston-college,massachusetts,suburban,private:roman-catholic,5-10,0.6666666666666666,20.0,500,550,60.0,10-13,50.0,40.0,4.0,5.0,3.0, economics| biology| english
+boston-university,massachusetts,urban,private,10-15,0.8181818181818182,12.0,550,575,60.0,13-17,60.0,40.0,4.0,4.0,3.0, business-administration| psychology| liberal-arts
+brown,rhodeisland,urban,private,5-,1.0,11.0,625,650,40.0,10-13,20.0,50.0,5.0,4.0,5.0, biology| history| arts:sciences
+cal-tech,california,suburban,private,5-,2.333333333333333,10.0,650,780,70.0,4-,15.0,90.0,5.0,1.0,3.0, engineering
+carnegie-mellon,pennsylvania,urban,private,5-,1.5,10.0,600,650,70.0,4-7,40.0,50.0,4.0,3.0,3.0, engineering
+case-western,ohio,urban,private,5-,2.333333333333333,9.0,550,650,65.0,4-,85.0,35.0,3.0,2.0,3.0, engineering| management| arts:sciences
+columbia,newyork,urban,private,5-,2.333333333333333,9.0,625,650,60.0,4-7,30.0,50.0,5.0,3.0,3.0, liberal-arts
+cornell,newyork,small-city,private,10-15,1.2222222222222223,7.0,600,650,50.0,17+,30.0,50.0,5.0,3.0,2.0, agriculture| architecture| arts:sciences| engineering| hotel-administration| human-ecology| industrial:labor-relations
+dartmouth,newhampshire,small-town,private,5-,1.5,7.0,625,650,40.0,7-10,20.0,60.0,5.0,5.0,3.0, liberal-arts
+florida-tech,florida,small-city,private,5-,4.0,20.0,500,550,60.0,4-,60.0,50.0,3.0,3.0,3.0, marine-biology| applied-technology| engineering
+georgia-tech,georgia,urban,state,5-10,4.0,20.0,525,625,20.0,4-7,60.0,50.0,4.0,2.0,2.0, engineering
+harvard,massachusetts,urban,private,5-10,1.8571428571428568,10.0,700,675,60.0,13-17,20.0,80.0,5.0,3.0,4.0, history| biology| liberal-arts
+illinois-tech,illinois,urban,state,5-,9.0,25.0,450,575,65.0,4-,50.0,60.0,3.0,1.0,3.0, architecture| engineering
+johns-hopkins,maryland,urban,private,5-,2.333333333333333,10.0,625,675,70.0,4-,50.0,40.0,5.0,3.0,3.0, arts:sciences| biology| political-science| chemistry| engineering
+mit,massachusetts,urban,private,5-,3.0,5.0,650,750,50.0,4-7,30.0,60.0,5.0,3.0,3.0, sciences| electrical-engineering| mechanical-engineering| engineering
+new-jersey-tech,newjersey,urban,state,5-,9.0,25.0,450,575,65.0,4-,50.0,60.0,3.0,1.0,3.0, engineering| architecture
+nyu,newyork,urban,private,5-10,1.0,7.0,550,575,50.0,7-10,50.0,60.0,4.0,3.0,3.0, journalism| psychology
+pratt,newyork,urban,private,5-,1.5,7.0,425,475,80.0,4-,50.0,60.0,3.0,1.0,2.0, architecture| art:design| electrical-engineering| arts:sciences
+princeton,newjersey,small-town,private,5-,1.8571428571428568,7.0,650,675,50.0,10-13,20.0,60.0,5.0,3.0,3.0, history| economics| political-science| liberal-arts| engineering
+rensselaer,newyork,small-city,private,5-,4.0,11.0,575,700,60.0,7-10,50.0,30.0,4.0,3.0,3.0, engineering| architecture| management
+rochester-tech,newyork,suburban,private,5-10,1.8571428571428568,14.0,525,575,60.0,7-10,70.0,50.0,3.0,3.0,3.0, business| engineering| computer-science| arts:sciences
+stanford,california,suburban,private,5-10,1.2222222222222223,10.0,625,675,45.0,13-17,20.0,70.0,5.0,4.0,5.0, economics| biology| english| arts:sciences| engineering
+stevens,newjersey,urban,private,5-,4.0,13.0,500,625,65.0,4-,60.0,40.0,3.0,2.0,4.0, engineering
+temple,pennsylvania,urban,state,15-20,1.0,11.0,475,500,60.0,10-13,70.0,60.0,2.0,2.0,2.0, accounting| computer-science
+texas-a&m,texas,small-city,state,20+,1.5,12.0,475,550,20.0,10-13,80.0,70.0,3.0,3.0,3.0, marine-biology
+university-of-california-davis,california,small-city,state,10-15,1.0,15.0,500,550,40.0,7-10,70.0,70.0,4.0,3.0,4.0, biology| psychology| economics
+ucla,california,urban,state,20+,1.0,11.0,500,550,50.0,4-7,80.0,70.0,4.0,3.0,3.0, biology| economics| english
+university-of-california-san-diego,california,suburban,state,5-10,1.2222222222222223,15.0,550,600,25.0,4-7,80.0,65.0,4.0,4.0,4.0, biology| engineering
+university-of-california-santa-cruz,california,suburban,state,5-10,1.0,18.0,525,550,65.0,4-,70.0,60.0,4.0,3.0,5.0, biology| psychology| arts:sciences
+university-of-maine,maine,small-town,public,10-15,1.2222222222222223,15.0,500,500,70.0,4-7,90.0,50.0,2.0,4.0,3.0, liberal-arts
+university-of-penn,pennsylvania,urban,private,5-10,1.5,10.0,600,650,60.0,10-13,40.0,50.0,5.0,4.0,3.0, engineering| liberal-arts| management| economics| nursing
+university-of-san-francisco,california,urban,private,5-,1.0,13.0,450,525,70.0,4-,60.0,60.0,3.0,3.0,4.0, business| arts:sciences
+usc,california,urban,private,10-15,1.5,18.0,475,525,60.0,10-13,70.0,50.0,4.0,4.0,3.0, biology| business| psychology
+worcester,massachusetts,urban,private,5-,4.0,12.0,550,650,70.0,4-,50.0,50.0,4.0,3.0,4.0, engineering
+yale,connecticut,small-city,private,5-,1.2222222222222223,5.0,675,675,40.0,10-13,20.0,60.0,5.0,3.0,4.0, history| biology| english| liberal-arts
+brandeis0,massachusetts,suburban,private,5-,1.0,9.0,580,610,50.0,4-,70.0,40.0,4.0,4.0,3.0, liberal-arts| biology| math-and-science| history| area-studies| social-science
+emory0,georgia,suburban,private,5-10,1.0,8.0,550,600,60.0,4-7,60.0,30.0,4.0,4.0,4.0, law| medical-sciences| social-science| liberal-arts
+georgetown1,district-of-columbia,urban,private,5-10,1.0,16.0,618,648,45.0,7-10,30.0,50.0,4.0,5.0,5.0, liberal-arts
+clark-university1,massachusetts,urban,private,5-,0.8181818181818182,15.0,500,575,50.0,4-,60.0,30.0,4.0,3.0,3.0, fine-arts| biology| business-administration| commerce-management| pre-med| pre-law| liberal-arts
+university-of-pittsburgh1,pennsylvania,urban,state,15-20,0.8181818181818182,11.0,500,550,90.0,4-7,80.0,50.0,3.0,2.0,2.0, fine-arts-applied-arts| engineering| food-technology| science
+university-of-rochester1,newyork,urban,private,5-10,1.5,10.0,550,625,80.0,4-7,70.0,30.0,4.0,3.0,3.0, engineering| business-administration| commerce-management| biology| medical-technology| pharmaceutical-science| history| liberal-arts
+university-of-washington1,washington,urban,state,20+,1.0,13.0,500,575,45.0,7-10,70.0,60.0,4.0,3.0,3.0, history| biology| engineering| science| pharmaceutical-science| pre-med| medical-technology| liberal-arts
+brandeis1,massachusetts,suburban,private,5-,1.0,10.0,580,620,45.0,4-,75.0,35.0,4.0,3.0,3.0, liberal-arts| math| science
+huntington-college,indiana,small-city,private,5-,1.2222222222222223,13.0,450,500,90.0,4-,90.0,65.0,3.0,4.0,3.0, liberal-arts| business-administration| education| science
+tufts1,massachusetts,suburban,private,5-,1.0,10.0,580,620,45.0,4-,75.0,35.0,4.0,4.0,4.0, liberal-arts| math
+trinity-college,connecticut,urban,private,5-,1.0408163265306123,9.0,560,600,85.0,4-,45.0,35.0,4.0,3.0,4.0, humanities| social-science| math| science
+university-of-portland,oregon,small-city,private,5-,1.0,15.0,500,480,30.0,4-,90.0,50.0,3.0,3.0,2.0, business-administration| engineering
+florida-academic-university,florida,urban,state,5-10,2.0,20.0,510,500,70.0,4-,80.0,60.0,2.0,5.0,4.0, liberal-arts
+hampshire-college1,massachusetts,small-town,private,5-,0.8333333333333334,14.0,556,542,35.0,4-,75.0,50.0,3.0,4.0,3.0, arts-and-sciences| liberal-arts| independent-study
+rutgers2,newjersey,urban,private,5-10,1.1891891891891893,17.0,540,490,55.0,10-13,55.0,35.0,3.0,2.0,2.0, liberal-arts| business-administration| health-science
+university-of-pennsylvania1,pennsylvania,urban,private,5-10,1.181818181818182,7.0,680,640,40.0,13-17,40.0,50.0,5.0,3.0,3.0, liberal-arts| business-administration| biology
+university-of-georgia1,georgia,small-town,state,10-15,1.0,20.0,490,530,40.0,4-7,70.0,50.0,2.0,4.0,5.0, journalism| business-administration
+golden-gate-college,california,urban,private,5-,0.3,20.0,500,500,25.0,4-,100.0,50.0,2.0,1.0,1.0, government| business-administration| accounting
+augsburg,minnesota,small-town,private,5-,1.3,10.0,420,490,80.0,4-,85.0,50.0,1.0,3.0,4.0, education| business-administration| performing-arts
+vanderbilt,tennessee,urban,private,5-10,1.0,7.0,550,600,35.0,4-7,60.0,25.0,4.0,3.0,4.0, health-science| english| education
+university-of-alabama,alabama,small-city,state,15-20,1.0408163265306123,17.0,470,535,50.0,4-7,70.0,50.0,2.0,4.0,4.0, education| business-administration| engineering| health-science| pre-professional| social-science
+auburn,alabama,small-town,state,15-20,1.2222222222222223,18.0,480,545,50.0,4-7,90.0,60.0,2.0,4.0,4.0, education| business-administration| engineering| health-science| pre-professional| social-science
+georgetown2,district-of-columbia,urban,private,5-10,1.2222222222222223,14.0,620,635,30.0,7-10,30.0,10.0,4.0,4.0,4.0, business-administration| foreign-languages| philosophy| social-studies| math-and-science| nursing
+washington-and-lee0,virginia,small-town,private,5-,4.0,11.0,560,590,30.0,4-,50.0,30.0,4.0,4.0,4.0, business-administration| foreign-languages| philosophy| social-studies
+rutgers3,newjersey,urban,state,20+,1.0,40.0,460,510,20.0,4-7,70.0,50.0,4.0,3.0,4.0, engineering| political-science
+queens,newyork,urban,state,15-20,0.6666666666666666,18.0,450,450,50.0,4-7,70.0,50.0,4.0,3.0,3.0, computer-science| accounting
+baruch,newyork,urban,state,10-15,1.0,15.0,450,400,80.0,4-7,60.0,50.0,3.0,2.0,3.0, business-administration
+rensselaer0,newyork,suburban,private,5-10,4.0,10.0,570,690,40.0,4-7,50.0,40.0,3.0,3.0,4.0, engineering| 50| hund:5-10| 50
+nicholls-state,louisiana,suburban,state,5-,1.0,20.0,0,0,90.0,4-,100.0,70.0,2.0,3.0,3.0, performing-arts| business-education
+boston-college0,massachusetts,suburban,private,10-15,0.6666666666666666,16.0,507,555,55.0,10-13,30.0,20.0,4.0,5.0,4.0, liberal-arts
+touro,newyork,urban,private,5-,0.6666666666666666,15.0,520,490,90.0,4-,60.0,30.0,3.0,2.0,4.0, liberal-arts| judaic-studies
+suny-stony-brook2,newyork,suburban,state,10-15,1.5,10.0,480,560,50.0,4-7,60.0,30.0,4.0,4.0,4.0, health-science
+oregon-state0,oregon,urban,state,15-20,1.5,12.0,450,675,40.0,4-7,90.0,85.0,3.0,3.0,3.0, liberal-arts| agriculture
+university-of-missouri,missouri,urban,private,10-15,1.0,11.0,494,529,30.0,4-,65.0,65.0,2.0,3.0,3.0, agriculture| biology
+university-of-kansas,kansas,small-town,state,20+,1.2222222222222223,16.0,480,460,50.0,10-13,80.0,50.0,4.0,3.0,5.0, business-administration| engineering| journalism
+university-of-evansville,indiana,small-city,private,5-10,0.6666666666666666,15.0,458,516,55.0,4-,80.0,50.0,3.0,5.0,4.0, business-administration| engineering| nursing
+university-of-lowell,massachusetts,urban,state,5-10,1.5,16.0,472,535,65.0,4-7,60.0,30.0,3.0,3.0,3.0, american-studies| engineering| dentistry
+oklahoma-state-university,oklahoma,small-town,state,20+,1.5,20.0,470,470,50.0,10-13,80.0,40.0,4.0,3.0,4.0, business-administration| engineering| science
+polytechnic-institute-of-newyork1,newyork,urban,private,5-,6.6923076923076925,8.0,600,600,80.0,7-10,75.0,45.0,3.0,2.0,2.0, engineering| arts-and-sciences| management
+tufts0,massachusetts,suburban,private,5-10,1.0,14.0,600,600,45.0,10-13,35.0,40.0,4.0,3.0,3.0, liberal-arts| science| engineering
+rutgers1,newjersey,small-town,state,20+,0.9090909090909092,22.0,461,507,10.0,17+,70.0,50.0,3.0,3.0,3.0, engineering| arts-and-sciences| management| medicine
+seton-hall,newjersey,small-town,private,10-15,1.0,28.0,430,452,60.0,17+,65.0,45.0,3.0,3.0,3.0, liberal-arts| religion| management
+university-of-pittsburgh0,pennsylvania,urban,state,20+,0.6666666666666666,100.0,550,550,50.0,17+,70.0,30.0,3.0,5.0,4.0, business-administration
+barnard,newyork,urban,private,5-,0.0,8.0,630,610,60.0,4-,60.0,20.0,4.0,3.0,4.0, liberal-arts| art-history| economics| biology
+university-of-massachusetts-amherst0,massachusetts,small-town,state,20+,1.0,18.0,480,510,60.0,10-13,80.0,20.0,3.0,3.0,3.0, liberal-arts| business-administration| education| engineering| biology
+fordham,newyork,urban,private,5-10,1.2222222222222223,17.0,525,540,70.0,4-7,60.0,45.0,3.0,3.0,3.0, communications| business-administration
+marist-college,newyork,suburban,private,5-,1.0,18.0,500,500,85.0,4-,40.0,60.0,3.0,3.0,3.0, english| biology
+hampshire-college,massachusetts,small-town,private,5-,0.9230769230769232,15.0,550,540,20.0,4-,75.0,40.0,3.0,5.0,5.0, liberal-arts
+hampshire-college0,massachusetts,small-town,private,5-,0.9230769230769232,15.0,550,540,20.0,4-,75.0,40.0,3.0,5.0,5.0, liberal-arts
+fordham1,newyork,urban,private,15-20,1.0,17.0,525,550,85.0,4-7,65.0,30.0,3.0,5.0,3.0, liberal-arts
+st-johns-u,newyork,urban,private,10-15,1.6666666666666667,18.0,468,508,75.0,4-7,75.0,35.0,2.0,3.0,2.0, liberal-arts| business-administration| law
+university-of-chicago0,illinois,urban,private,5-10,5.0,8.0,617,639,60.0,4-,70.0,25.0,5.0,4.0,4.0, humanities| social-science| physical-sciences| biology
+fordham0,newyork,urban,private,15-20,1.0408163265306123,17.0,525,550,85.0,4-7,70.0,40.0,4.0,3.0,3.0, business-administration| communications| law| education
+newyorkit,newyork,small-town,private,10-15,1.2222222222222223,20.0,410,470,75.0,4-,80.0,50.0,2.0,3.0,2.0, business-administration| engineering| chemistry| education
+reed,oregon,suburban,private,5-,1.5,10.0,625,625,40.0,4-,80.0,40.0,4.0,3.0,4.0, french| english| chemistry| biology
+suny-albany0,newyork,urban,state,15-20,1.0612244897959184,19.0,522,596,75.0,13-17,50.0,35.0,3.0,3.0,4.0, social-welfare| business-administration| science| mathematics| humanities
+suny-binghamton0,newyork,urban,state,5-10,0.8181818181818182,19.0,527,594,85.0,10-13,45.0,40.0,3.0,4.0,3.0, management| general-studies| engineering| nursing
+yale0,connecticut,small-city,private,10-15,1.2222222222222223,17.0,615,660,25.0,7-10,20.0,60.0,5.0,3.0,2.0, social-science| biology| arts-and-humanities| foreign-languages
+university-of-bridgeport,connecticut,small-city,private,5-,1.127659574468085,20.0,432,488,35.0,4-,80.0,25.0,1.0,4.0,4.0, business-administration| engineering| health-medicine| architecture
+bard,newyork,small-town,private,5-,0.8181818181818182,9.0,560,520,80.0,4-,70.0,30.0,3.0,4.0,4.0, liberal-arts
+drew,newjersey,suburban,private,5-,1.0833333333333333,15.0,535,553,50.0,4-,70.0,30.0,3.0,3.0,3.0, liberal-arts
+georgetown0,district-of-columbia,urban,private,10-15,1.2727272727272727,13.0,616,645,50.0,7-10,30.0,50.0,5.0,3.0,4.0, liberal-arts
+swarthmore,pennsylvania,suburban,private,5-,1.2727272727272727,10.0,620,660,50.0,4-,50.0,40.0,5.0,3.0,4.0, liberal-arts
+mount-holyoke,massachusetts,small-city,private,5-,0.0,8.0,610,590,60.0,10-13,50.0,50.0,4.0,3.0,4.0, social-science| biology
+university-of-texas1,texas,urban,state,20+,1.0,12.0,485,540,40.0,17+,80.0,60.0,3.0,4.0,4.0, business-administration| engineering
+tulane,louisiana,urban,private,5-10,1.5,11.0,552,594,30.0,17+,80.0,30.0,3.0,5.0,4.0, social-science| engineering
+texas-christian-university,texas,small-city,private,5-10,1.0,15.0,515,515,60.0,4-,70.0,80.0,3.0,3.0,4.0, biology| liberal-arts
+oregon-institute-of-technology,oregon,suburban,state,5-,3.0,14.0,404,443,15.0,4-,80.0,60.0,3.0,2.0,2.0, health-science| engineering| business-administration
+university-of-texas,texas,small-city,state,20+,1.0,15.0,300,300,40.0,17+,60.0,60.0,3.0,5.0,5.0, engineering| liberal-arts
+corpus-christi-state-u,texas,small-city,state,5-,2.333333333333333,12.0,250,250,40.0,4-,80.0,70.0,1.0,3.0,3.0, business-administration
+juilliard,newyork,urban,private,5-,0.6666666666666666,7.0,0,0,70.0,7-10,15.0,80.0,1.0,1.0,2.0, music-performance| dance| drama
+eastman-school-of-music,newyork,urban,private private,5-,0.6666666666666666,7.0,400 0,400,40.0,4-7,15.0,70.0,3.0,4.0,4.0, music-education| music-performance| music-composition| music
+butler,indiana,urban,private,5-,0.6666666666666666,15.0,500,530,75.0,4-,80.0,40.0,3.0,3.0,3.0, liberal-arts| education
+rutgers,newjersey,small-town,state,5-10,0.8867924528301887,16.0,550,600,40.0,10-13,50.0,30.0,4.0,3.0,3.0, engineering| physical-sciences| liberal-arts| computer-science| political-science
+university-of-minnesota,minnesota,urban,state,20+,1.2222222222222223,16.0,490,557,50.0,7-10,80.0,60.0,4.0,3.0,4.0, engineering| agriculture
+university-of-maryland,maryland,suburban,state,20+,1.2222222222222223,16.0,468,529,50.0,13-17,60.0,50.0,3.0,3.0,3.0, arts-and-humanities
+northwestern,illinois,small-city,private,10-15,1.0,9.0,590,630,65.0,7-10,45.0,45.0,4.0,3.0,3.0, journalism| music| technology| education
+syracuse0,newyork,suburban,private,10-15,1.2222222222222223,14.0,535,560,55.0,4-,70.0,30.0,3.0,3.0,3.0, architecture| public-communication| computer-science
+michigan-state,michigan,urban,state,20+,1.0,25.0,450,500,10.0,17+,90.0,50.0,2.0,4.0,4.0, veterinary-medicine| engineering| medicine| agriculture| teacher-education
+university-of-michigan1,michigan,small-city,state,20+,1.0,20.0,580,660,30.0,13-17,60.0,70.0,5.0,5.0,5.0, biology| engineering| liberal-arts| english| foreign-languages
+monmouth-college,newjersey,suburban,private,5-,0.9230769230769232,15.0,500,550,60.0,4-,80.0,40.0,3.0,3.0,4.0, engineering| accounting| liberal-arts| computer-science| marketing
+clarkson-university,newyork,small-city,private,5-,4.0,20.0,535,640,80.0,4-,70.0,30.0,3.0,3.0,4.0, engineering| management
+clark-university0,massachusetts,urban,private,5-,0.8181818181818182,14.0,550,580,50.0,4-,60.0,30.0,4.0,4.0,4.0, psychology| geography| arts
+colorado-college,colorado,urban,private,5-,0.1111111111111111,14.0,600,600,40.0,4-,30.0,0.0,3.0,3.0,4.0, mining| management
+suny-plattsburgh,newyork,small-town,state,5-10,0.6666666666666666,14.0,600,600,60.0,4-7,40.0,20.0,3.0,4.0,4.0, computer-science| business-administration| liberal-arts
+chalmers-university-of-technology,foreign,urban,state,5-10,0.25,10.0,0,0,100.0,4-7,20.0,90.0,4.0,5.0,5.0, loans||||||| engineering| architecture
+gothenburg-university,foreign,urban,state,10-15,1.0,15.0,0,0,100.0,10-13,30.0,70.0,3.0,3.0,3.0, loans||||||| humanities| science| business-administration| liberal-arts
+university-of-tulsa0,oklahoma,suburban,private,5-,1.5,16.0,489,529,50.0,4-,80.0,40.0,3.0,4.0,4.0, liberal-arts
+university-of-denver,colorado,suburban,state,5-,2.333333333333333,14.0,510,540,50.0,4-,70.0,50.0,3.0,3.0,3.0, management
+bucknell,pennsylvania,small-town,private,5-,1.5,8.0,600,500,75.0,4-7,35.0,15.0,4.0,3.0,3.0, chemistry| classics| economics| foreign-languages| mathematics| political-science| psychology
+university-of-the-pacific,california,urban,private,5-10,0.9230769230769232,17.0,560,550,65.0,4-,80.0,40.0,3.0,4.0,4.0, business-administration| teacher-education| music| pharmacy
+university-of-the-south0,tennessee,suburban,private,5-,0.6666666666666666,10.0,540,560,40.0,4-,75.0,50.0,3.0,3.0,3.0, american-studies| asian//oriental-studies| biology
+university-of-toledo,ohio,urban,state,15-20,1.0,20.0,450,450,75.0,4-7,95.0,70.0,1.0,2.0,2.0, business-administration| music| pharmacy| teacher-education
+university-of-the-district-of-columbia,district-of-columbia,urban,state,5-10,0.7857142857142857,14.0,500,510,30.0,4-,95.0,80.0,2.0,2.0,2.0, business-administration| computer-science| teacher-education| history
+university-of-southdakota,southdakota,suburban,state,5-,1.0,19.0,act-21,act-21,85.0,4-,80.0,80.0,2.0,3.0,3.0, business-administration| liberal-arts| math-and-science
+yanktown-college,southdakota,suburban,private,5-,2.333333333333333,10.0,450,400,95.0,4-,95.0,90.0,1.0,2.0,2.0, social-science| business-administration
+baylor-university,texas,urban,private,5-10,0.08050089445438283,21.0,485,521,65.0,10-13,65.0,75.0,4.0,4.0,3.0, philosophy| english| social-science
+dallas-baptist-college,texas,suburban,private,5-,1.2222222222222223,19.0,act-15,act-15,65.0,4-,100.0,40.0,1.0,2.0,2.0, social-science| english
+suny-buffalo,newyork,urban,state,20+,1.5,14.0,450,525,50.0,10-13,90.0,30.0,4.0,2.0,2.0, architecture-and-enviromental-design| arts-and-letters| engineering| health-science| management| natural-sciences| social-science
+suny-albany,newyork,suburban,state,15-20,1.0,19.0,525,575,80.0,13-17,60.0,30.0,4.0,3.0,3.0, arts-and-sciences| professional-studies
+ohio-state,ohio,urban,state,20+,1.2222222222222223,16.0,450,500,30.0,17+,90.0,65.0,4.0,4.0,3.0, administrative-science| agriculture| arts-and-sciences| dentistry| education| engineering| law| medicine| optometry| pharmacy| social-work| veterinary-medicine
+rutgers0,newjersey,small-city,state,20+,1.2222222222222223,16.0,475,525,50.0,17+,55.0,30.0,4.0,3.0,3.0, engineering
+suny-stony-brook0,newyork,suburban,state,10-15,1.2222222222222223,15.0,500,575,75.0,10-13,70.0,30.0,4.0,3.0,2.0, allied-health-professions
+northcarolina-state-university,northcarolina,urban,state,20+,2.25,14.0,466,538,0.0,4-,0.0,0.0,2.0,3.0,3.0, agriculture| education| engineering| humanities| mathematics| textiles
+bryn-mawr0,pennsylvania,small-town,private,5-,0.0,8.0,600,600,70.0,4-,60.0,50.0,5.0,4.0,4.0, biology| chemistry| classics| political-science| government| romance-languages
+walla-walla-college,washington,small-town,private,5-,1.173913043478261,10.0,400,400,70.0,4-,70.0,60.0,2.0,2.0,3.0, english| industrial-arts| biblical-languages
+vassar,newyork,small-town,private,5-,0.6666666666666666,5.0,600,600,50.0,4-,50.0,40.0,5.0,4.0,4.0, film-studies| fine-arts| classics| english
+college-of-newrochelle,newyork,small-town,private,5-,0.0,15.0,600,600,80.0,4-,70.0,40.0,2.0,2.0,3.0, education| social-work| nursing
+university-of-massachusetts-amherst,massachusetts,small-town,state,20+,1.0,18.0,475,525,40.0,13-17,70.0,45.0,3.0,5.0,4.0, engineering| chemistry| business-administration
+university-of-virginia0,virginia,small-city,state,10-15,1.0,11.0,575,625,30.0,10-13,35.0,60.0,4.0,4.0,5.0, liberal-arts| commerce| engineering| architecture
+syracuse1,newyork,urban,private,20+,1.0833333333333333,20.0,600,600,40.0,10-13,70.0,40.0,4.0,4.0,4.0, engineering
+university-of-notre-dame,indiana,urban,private,5-10,2.333333333333333,11.0,600,600,50.0,4-7,50.0,60.0,4.0,4.0,4.0, accounting| pre-med| political-science| government
+university-of-colorado,colorado,small-city,state,20+,1.5,16.0,500,550,60.0,13-17,70.0,60.0,3.0,5.0,5.0, engineering| molecular-biology| physics| liberal-arts
+colorado-school-of-mines,colorado,suburban,state,5-,4.0,18.0,550,600,50.0,4-,60.0,50.0,3.0,3.0,3.0, engineering
+suny-stony-brook1,newyork,suburban,state,10-15,1.2222222222222223,15.0,500,575,75.0,10-13,70.0,30.0,4.0,3.0,2.0, allied-health-professions
+ecole-nationale-superieure-de-telecommunication-de-paris,foreign,urban,state,5-,4.0,5.0,0,0,20.0,7-10,5.0,50.0,4.0,4.0,4.0, engineering
+ecole-polytechnique,foreign,urban,state,5-,9.0,5.0,0,0,100.0,4-7,10.0,95.0,5.0,5.0,5.0, engineering| economics| science
+universite-saint-joseph,foreign,suburban,private,5-,1.5,6.0,0,0,10.0,4-7,70.0,80.0,4.0,4.0,3.0, engineering| medical-school| economics| humanities
+american-university-of-beirut,foreign,urban,private,5-10,1.5,4.0,0,0,20.0,4-7,50.0,80.0,3.0,3.0,3.0, medical-school| engineering| humanities
+boston-college,massachusetts,suburban,private,5-10,0.6666666666666666,20.0,500,550,60.0,10-13,50.0,40.0,4.0,5.0,3.0, economics| biology| english
+boston-university,massachusetts,urban,private,10-15,0.8181818181818182,12.0,550,575,60.0,13-17,60.0,40.0,4.0,4.0,3.0, business-administration| psychology| liberal-arts
+brown,rhodeisland,urban,private,5-,1.0,11.0,625,650,40.0,10-13,20.0,50.0,5.0,4.0,5.0, biology| history| arts-and-sciences
+cal-tech,california,suburban,private,5-,2.333333333333333,10.0,650,780,70.0,4-,20.0,90.0,5.0,1.0,3.0, engineering
+carnegie-mellon,pennsylvania,urban,private,5-,1.5,10.0,600,650,70.0,4-7,40.0,50.0,4.0,3.0,3.0, engineering
+case-western,ohio,urban,private,5-,2.333333333333333,9.0,550,650,65.0,4-,85.0,35.0,3.0,2.0,3.0, engineering| management| arts-and-sciences
+columbia,newyork,urban,private,5-,2.333333333333333,9.0,625,650,60.0,4-7,30.0,50.0,5.0,3.0,3.0, liberal-arts
+cornell,newyork,small-city,private,10-15,1.2222222222222223,7.0,600,650,50.0,17+,30.0,50.0,5.0,3.0,2.0, agriculture| architecture| arts-and-sciences| engineering| hotel-administration| human-ecology| industrial:labor-relations
+dartmouth,newhampshire,small-town,private,5-,1.5,7.0,625,650,40.0,7-10,20.0,60.0,5.0,5.0,3.0, liberal-arts
+florida-tech,florida,small-city,private,5-,4.0,20.0,500,550,60.0,4-,60.0,50.0,3.0,3.0,3.0, marine-biology| applied-technology| engineering
+georgia-tech,georgia,urban,state,5-10,4.0,20.0,525,625,20.0,4-7,60.0,50.0,4.0,2.0,2.0, engineering
+harvard,massachusetts,urban,private,5-10,1.8571428571428568,10.0,700,675,60.0,13-17,20.0,80.0,5.0,3.0,4.0, history| biology| history| liberal-arts
+illinois-tech,illinois,urban,state,5-,9.0,25.0,450,575,65.0,4-,50.0,60.0,3.0,1.0,3.0, architecture| engineering
+johns-hopkins,maryland,urban,private,5-,2.333333333333333,10.0,625,675,70.0,4-,50.0,40.0,5.0,3.0,3.0, arts-and-sciences| biology| political-science| chemistry| engineering
+mit,massachusetts,urban,private,5-,3.0,5.0,650,750,50.0,4-7,30.0,60.0,5.0,3.0,3.0, science| electrical-engineering| mechanical-engineering| engineering
+newjersey-tech,newjersey,urban,state,5-,9.0,25.0,450,575,65.0,4-,50.0,60.0,3.0,1.0,3.0, engineering| architecture
+nyu,newyork,urban,private,5-10,1.0,7.0,550,575,50.0,7-10,50.0,60.0,4.0,3.0,3.0, journalism| psychology
+pratt,newyork,urban,private,5-,1.5,7.0,425,475,80.0,4-,50.0,60.0,3.0,1.0,2.0, architecture| art-and-design| electrical-engineering| arts-and-sciences
+princeton,newjersey,small-town,private,5-,1.8571428571428568,7.0,650,675,50.0,10-13,20.0,60.0,5.0,3.0,3.0, history| economics| political-science| liberal-arts| engineering
+rensselaer,newyork,small-city,private,5-,4.0,11.0,575,700,60.0,7-10,50.0,30.0,4.0,3.0,3.0, engineering| architecture| management
+rochester-tech,newyork,suburban,private,5-10,1.8571428571428568,14.0,525,575,60.0,7-10,70.0,50.0,3.0,3.0,3.0, business-administration| engineering| computer-science| arts-and-sciences
+stanford,california,suburban,private,5-10,1.2222222222222223,10.0,625,675,45.0,13-17,20.0,70.0,5.0,4.0,5.0, economics| biology| english| arts-and-sciences| engineering
+stevens,newjersey,urban,private,5-,4.0,13.0,500,625,65.0,4-,60.0,40.0,3.0,2.0,4.0, engineering
+temple,pennsylvania,urban,state,15-20,1.0,11.0,475,500,60.0,10-13,70.0,60.0,2.0,2.0,2.0, accounting| computer-science
+texas-a&m,texas,small-city,state,20+,1.5,12.0,475,550,20.0,10-13,80.0,70.0,3.0,3.0,3.0, marine-biology
+university-of-california-davis,california,small-city,state,10-15,1.0,15.0,500,550,40.0,7-10,70.0,70.0,4.0,3.0,4.0, biology| psychology| economics
+ucla,california,urban,state,20+,1.0,11.0,500,550,50.0,4-7,80.0,70.0,4.0,3.0,3.0, biology| economics| english
+university-of-california-san-diego,california,suburban,state,5-10,1.2222222222222223,15.0,550,600,25.0,4-7,80.0,65.0,4.0,4.0,4.0, biology| engineering
+university-of-california-santa-cruz,california,suburban,state,5-10,1.0,18.0,525,550,65.0,4-,70.0,60.0,4.0,3.0,5.0, biology| psychology| arts-and-sciences
+university-of-maine,maine,small-town,state,10-15,1.2222222222222223,15.0,500,500,70.0,4-7,90.0,50.0,2.0,4.0,3.0, liberal-arts
+university-of-pennsylvania,pennsylvania,urban,private,5-10,1.5,10.0,600,650,60.0,10-13,40.0,50.0,5.0,4.0,3.0, engineering| liberal-arts| management| economics| nursing
+university-of-san-francisco,california,urban,private,5-,1.0,13.0,450,525,70.0,4-,60.0,60.0,3.0,3.0,4.0, business-administration| arts-and-sciences
+usc,california,urban,private,10-15,1.5,18.0,475,525,60.0,10-13,70.0,50.0,4.0,4.0,3.0, biology| business-administration| psychology
+worcester,massachusetts,urban,private,5-,4.0,12.0,550,650,70.0,4-,50.0,50.0,4.0,3.0,4.0, engineering
+yale,connecticut,small-city,private,5-,1.2222222222222223,5.0,675,675,40.0,10-13,20.0,60.0,5.0,3.0,4.0, history| biology| english| liberal-arts
+penn-state,pennsylvania,urban,state,20+,1.5,0.7692307692307693,620,680,60.0,10-13,40.0,50.0,5.0,4.0,4.0, engineering| law| medical| liberal-arts
+university-of-pittsburgh2,pennsylvania,urban,state,20+,1.0,10.0,480,530,60.0,17+,75.0,55.0,4.0,4.0,5.0, management| law| chemistry| engineering
+university-of-michigan,michigan,suburban,state,20+,1.25,15.0,540,600,60.0,13-17,60.0,50.0,4.0,2.0,3.0, aerospace| chemical-engireering| ieor| humanities
+rice,texas,suburban,private,5-,2.0,9.0,621,671,80.0,4-,35.0,55.0,5.0,2.0,3.0, engineering| architecture| humanities
+notre-dame,indiana,urban,private,15-20,2.5,12.0,570,640,50.0,7-10,35.0,60.0,5.0,3.0,3.0, humanities| engineering
+newengland-college,newhampshire,small-town,private,10-15,50.0,13.0,590,590,40.0,4-,50.0,95.0,4.0,3.0,4.0, science | engineering
+clark-university,massachusetts,small-city,private,5-,1.0,13.0,550,576,50.0,4-,60.0,35.0,4.0,3.0,3.0, psychology| liberal-arts
+university-of-hartford,connecticut,suburban,private,5-10,0.8181818181818182,13.0,445,491,40.0,4-7,75.0,35.0,3.0,3.0,3.0, liberal-arts
+polytechnic-institute-of-newyork,newyork,urban,private,5-,6.6923076923076925,8.0,600,600,80.0,7-10,75.0,45.0,3.0,2.0,2.0, engineering| arts-and-sciences| management
+tufts,massachusetts,suburban,private,5-10,1.0,14.0,600,600,45.0,10-13,35.0,35.0,4.0,3.0,3.0, liberal-arts| science| engineering
+university-of-virginia,virginia,small-city,state,10-15,1.0,10.0,585,625,30.0,10-13,40.0,20.0,4.0,4.0,4.0, arts-and-sciences| architecture| commerce| education| engineering| nursing
+university-of-rochester,newyork,urban,private,5-10,1.5,10.0,550,550,70.0,4-7,80.0,30.0,4.0,3.0,3.0, liberal-arts
+sam-houston-state-university,texas,suburban,state,10-15,1.0,30.0,400,400,30.0,4-,80.0,70.0,2.0,2.0,2.0, applied-science| business-administration| criminal-justice| education
+manhattanville-college,newyork,suburban,private,5-,0.42857142857142855,11.0,500,530,60.0,4-,60.0,40.0,4.0,3.0,4.0, music| fine-arts| social-science| liberal-arts
+suny-purchase,newyork,suburban,state,5-,0.5384615384615384,17.0,525,525,5.0,4-,40.0,40.0,3.0,3.0,3.0, visual-and-performing-arts| liberal-arts
+brandeis,massachusetts,suburban,private,5-,0.9230769230769232,10.0,580,630,40.0,4-,60.0,45.0,4.0,3.0,4.0, economics| biology| chemistry| pre-med| pre-law| liberal-arts
+george-washington,district-of-columbia,urban,private,5-,1.0,14.0,530,560,45.0,4-7,75.0,30.0,3.0,4.0,3.0, business-administration| political-science| international-affairs
+oral-roberts-university,oklahoma,suburban,private,5-,1.0,11.0,463,490,70.0,4-,65.0,75.0,4.0,2.0,3.0, business-administration| education| fine-and-performing-arts| health-science| math| philosophy| social-science
+university-of-tulsa,oklahoma,urban,private,5-10,1.5,16.0,471,520,75.0,4-,85.0,65.0,4.0,4.0,4.0, area-studies| business-administration| education| english| fine-and-performing-arts| foreign-languages| math| social-science
+connecticut-college,connecticut,small-city,private,5-,0.5384615384615384,10.0,550,575,30.0,4-,40.0,40.0,4.0,3.0,4.0, liberal-arts
+lehigh-university,pennsylvania,small-city,private,5-10,3.0,10.0,550,650,45.0,4-7,50.0,40.0,4.0,4.0,2.0, engineering| physical

@@ -17,3 +17,6 @@ tutorials/Exp_reproduce/
 tutorials/test.ipynb
 tutorials/pandas_test.ipynb
 tutorials/**.png
+nohup.out
+.vscode
+./tutorials/*.npy

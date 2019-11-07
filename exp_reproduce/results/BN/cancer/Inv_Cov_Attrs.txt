@@ -1,0 +1,4 @@
+Cancer <-> Pollution	4.9171273986548965
+Xray <-> Cancer	2.838982842854387
+Smoker <-> Cancer	2.453910885896147
+Dyspnoea <-> Cancer	2.2101195769570956

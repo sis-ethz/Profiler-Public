@@ -63,7 +63,7 @@ def compute_differences(attr, dtype, env, operators, left, right, embed):
     return df, c
 
 
-def compute_differences_text(env, attr, left, right, embed, sim_type=2):
+def compute_differences_text(env, attr, left, right, embed, sim_type=1):
     # sim_type = 1: cosine similarity between text
     # sim_type = 2 / else: Euclidean distance between text
 
@@ -188,6 +188,11 @@ class TransformEngine(object):
 
         if not difference:
             data, _ = self.check_singular(self.ds.df)
+
+            # change all data into numerical rather than text or cat
+            self.embed = embed
+            data = self.transfer_data_into_all_num(data)
+            
             self.null_pb = 0
             self.sample_size = data.shape[0]
             self.training_data = data
@@ -241,11 +246,28 @@ class TransformEngine(object):
         if self.env['null_policy'] == SKIP:
             self.ds.df.dropna(how="any", axis=0, inplace=True)
 
+    def transfer_data_into_all_num(self, data):
+        for col in data.columns:
+            if self.ds.dtypes[col] in ['categorical', 'text']:
+                frac_value = pd.factorize(data[col].values)[0].astype(np.float64)
+                frac_value = (np.abs(frac_value)) / (np.nanmax(np.abs(frac_value))) 
+                data.update( pd.DataFrame(frac_value, columns=[col]) )
+                data[col] = data[col].astype(np.float64)
+                self.ds.dtypes[col] = 'numeric'
+            elif self.ds.dtypes[col] in ['numeric']:
+                frac_value = np.abs(data[col].values) / np.nanmax(np.abs(data[col].values))
+                data.update( pd.DataFrame(frac_value, columns=[col]) )
+                data[col] = data[col].astype(np.float64)
+        data = data.reset_index(drop=True)
+        data = data.dropna()        
+        return data
+    
+    
     # Edited on 09/28/2019 by Yunjia
     # added a para for indicating if the training set should be sorted
     # the default attr_sort should be False (random permutation for every attr)
     # If attr_sort=False, should use lower sparsity configuration
-    def create_pair_data(self, multiplier, sample_frac, attr_sort=False):
+    def create_pair_data(self, multiplier, sample_frac, attr_sort=True):
         multiplier = max(1, int(np.ceil(multiplier/self.ds.field.shape[0])))
         # shift and concate
         lefts = []

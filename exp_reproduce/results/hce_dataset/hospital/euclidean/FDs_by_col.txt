@@ -1,0 +1,10 @@
+State -> Stateavg
+ZipCode -> ProviderNumber
+ZipCode,ProviderNumber -> PhoneNumber
+ZipCode,ProviderNumber,PhoneNumber -> EmergencyService
+ZipCode,EmergencyService -> Score
+Score -> Sample
+Sample -> MeasureName
+Sample,Address1,MeasureName -> HospitalOwner
+HospitalOwner -> MeasureCode
+Score -> CountyName

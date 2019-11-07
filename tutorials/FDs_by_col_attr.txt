@@ -1,0 +1,13 @@
+ProviderNumber
+HospitalName
+Address1
+City
+ZipCode
+CountyName
+HospitalOwner
+State
+EmergencyService
+Condition
+MeasureCode
+MeasureName
+Stateavg

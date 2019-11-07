@@ -1,0 +1,5 @@
+age
+density
+severity
+margin
+rads

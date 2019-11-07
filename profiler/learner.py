@@ -5,6 +5,7 @@ from scipy import sparse
 from copy import deepcopy
 from profiler.graph import *
 from scipy.cluster.vq import vq, kmeans, whiten
+import operator
 
 
 logging.basicConfig()
@@ -44,6 +45,9 @@ class StructureLearner(object):
         self.param.update(kwargs)
         self.cov = self.estimate_covariance()
         self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
+        # self.visualize_inverse_covariance()
+        if np.all(np.linalg.eigvals(self.inv_cov) > 0) == False:
+            return np.zeros([self.inv_cov.shape[0], self.inv_cov.shape[1]])
         if not self.param['infer_order']:
             self.B = self.upper_decompose(self.inv_cov)
         else:
@@ -88,25 +92,41 @@ class StructureLearner(object):
         np_inv = self.inv_cov.values
         for i in range(len(np_inv)):
             np_inv[i,i] = 0
-            
+        
+        np_abs_inv = np.abs(self.inv_cov.values)
         np_inv_sum = np.sum(np.abs(self.inv_cov.values), axis=0)
         np_inv_sum = np.nan_to_num(np_inv_sum).astype(np.float64)
         
+        col_num = np_abs_inv.shape[0]
+        dict1 = {}
+        print("none-zero pairs of abs inv")
+        for i in range(col_num):
+            for j in range(i+1, col_num):
+                if np_abs_inv[i,j] > 0:
+                    dict1[ "%s <-> %s" % (self.inv_cov.columns[i], self.inv_cov.columns[j]) ] = np_abs_inv[i,j]
+        sorted_x = sorted(dict1.items(), key=operator.itemgetter(1))
+        sorted_x.reverse()
         
-        # manual threshold
-        threshold = len(np_inv_sum) * 2
-        # dynamic threshold using k-means to split it into small values and large values        
-        # centers, _ = kmeans(np_inv_sum, k_or_guess=2)
-        # threshold = np.mean(centers)
-        # traditioinally set all attributes to 0
-        # threshold = 1
+        # formated prints of the high value pairs
+        with open('./Inv_Cov_Attrs.txt','w') as f:
+            for i in range(len(dict1)):
+                f.write(sorted_x[i][0] + "\t" + str(sorted_x[i][1]) + "\n")
 
-        print("threshold = ", threshold)
-        print("sum = ", np_inv_sum)
-        print("attr = ", self.inv_cov.columns)
+        # # manual threshold
+        # threshold = len(np_inv_sum) * 2
+        # # dynamic threshold using k-means to split it into small values and large values        
+        # # centers, _ = kmeans(np_inv_sum, k_or_guess=2)
+        # # threshold = np.mean(centers)
+        # # traditioinally set all attributes to 0
+        # # threshold = 1
+
+
+        # print("threshold = ", threshold)
+        # print("sum = ", np_inv_sum)
+        # print("attr = ", self.inv_cov.columns)
         
-        print("Attr w/o dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum <= threshold)])
-        print("\n\nAttr w/ dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum > threshold)])
+        # print("Attr w/o dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum <= threshold)])
+        # print("\n\nAttr w/ dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum > threshold)])
 
 
     def visualize_covariance(self):
@@ -147,21 +167,35 @@ class StructureLearner(object):
 
     def get_dependencies(self, heatmap, score, write_to=None):
 
-        def get_dependencies_helper(U_hat, s_func, write_to=None):
+        def get_dependencies_helper(U_hat, s_func, write_to=None, by_col=True):
             parent_sets = {}
             if write_to is not None:
-                fd_file = open(write_to + ".txt", 'w')
-                attr_file = open(write_to + "_attr.txt", 'w')
-            for i, attr in enumerate(U_hat):
-                columns = U_hat.columns.values[0:i]
-                parents = columns[(U_hat.iloc[0:i, i] > 0).values]
-                parent_sets[attr] = parents
+                if by_col:
+                    file_name = write_to + "_by_col"
+                else:
+                    file_name = write_to + "_by_row"
+                fd_file = open(file_name + ".txt", 'w')
+                attr_file = open(file_name + "_attr.txt", 'w')
+            
+            # for i, attr in enumerate(U_hat):
+            for i in range(U_hat.shape[0]):
+                if by_col:
+                    attr = U_hat.columns[i]
+                    columns = U_hat.columns.values[0:i]
+                    parents = columns[(U_hat.iloc[0:i, i] > 0).values]
+                    parent_sets[attr] = parents
+                else:
+                    attr = U_hat.columns[i] # columns are the same as index
+                    columns = U_hat.columns.values[i+1 : ]
+                    parents = columns[U_hat.iloc[i].values[i+1 :] > 0]
+                    parent_sets[attr] = parents
                 if len(parents) > 0:
                     s, _ = s_func((parents, attr))
-                    fd_file.write("{} -> {} ({})\n".format(",".join(parents), attr, s))
+                    fd_file.write("{} -> {}\n".format(",".join(parents), attr))
                     attr_file.write(attr + "\n")
                     print("{} -> {} ({})".format(",".join(parents), attr, s))
             fd_file.close()
+            attr_file.close()
             return parent_sets
 
         if score == "training_data_fd_vio_ratio":
@@ -170,11 +204,11 @@ class StructureLearner(object):
             scoring_func = self.fit_error
         else:
             scoring_func = (lambda x: ("n/a", None))
-
+        parent_sets = {}
         if heatmap is None:
             if self.B is not None:
                 parent_sets = get_dependencies_helper(self.B, scoring_func, write_to=write_to)
-            else:
+            elif self.Bs is not None:
                 parent_sets = {}
                 for B in self.Bs:
                     parent_sets.update(get_dependencies_helper(B, scoring_func, write_to=write_to))
@@ -266,7 +300,11 @@ class StructureLearner(object):
         columns = self.session.trans_engine.training_data.columns
         self.p = X.shape[1]
         # centralize data
-        X = X - np.mean(X, axis=0)
+        # print("x type: ", X.dtype, "\n", X[:5,:])
+        # if X.dtype is np.str:
+        #     print("X has type str rather than float!")
+        #     print(X[:5,:])
+        # X = X - np.mean(X, axis=0)
         # with missing value
         cov = np.dot(X.T, X) / X.shape[0]
         m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-self.session.trans_engine.null_pb))
