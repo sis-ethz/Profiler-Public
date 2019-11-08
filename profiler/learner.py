@@ -1,4 +1,5 @@
 from sklearn.covariance import graphical_lasso
+from sklearn import covariance
 from profiler.utility import find_all_subsets, visualize_heatmap
 from sksparse.cholmod import cholesky, analyze
 from scipy import sparse
@@ -267,7 +268,7 @@ class StructureLearner(object):
         B_hat = StructureLearner.get_df(B, inv_cov.columns.values[perm])
         return B_hat
 
-    def estimate_inverse_covariance(self, cov):
+    def estimate_inverse_covariance(self, cov, shrinkage=0.01):
         """
         estimate inverse covariance matrix
         :param data: dataframe
@@ -275,6 +276,12 @@ class StructureLearner(object):
         """
         # estimate inverse_covariance
         columns = self.session.trans_engine.training_data.columns
+
+        # shrink covariance for ill-formed datset
+        if shrinkage > 0:
+            print("[INFO]: using sklearn shrunk_covariance ", shrinkage)
+            cov = covariance.shrunk_covariance(cov, shrinkage=shrinkage)
+
         est_cov, inv_cov = graphical_lasso(cov, alpha=self.param['sparsity'], mode=self.param['solver'],
                                            max_iter=self.param['max_iter'])
         self.s_p = np.count_nonzero(inv_cov)

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def normalized_sim(diff, threshold_type=0):
+def normalized_sim(diff, threshold_type=2):
     if threshold_type == 1:
         # standardizing and set all value below or above as zeros
         np_diff = diff.values
