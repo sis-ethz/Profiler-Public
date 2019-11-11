@@ -109,9 +109,9 @@ class StructureLearner(object):
         sorted_x.reverse()
         
         # formated prints of the high value pairs
-        with open('./Inv_Cov_Attrs.txt','w') as f:
-            for i in range(len(dict1)):
-                f.write(sorted_x[i][0] + "\t" + str(sorted_x[i][1]) + "\n")
+        # with open('./Inv_Cov_Attrs.txt','w') as f:
+        #     for i in range(len(dict1)):
+        #         f.write(sorted_x[i][0] + "\t" + str(sorted_x[i][1]) + "\n")
 
         # # manual threshold
         # threshold = len(np_inv_sum) * 2
@@ -176,7 +176,7 @@ class StructureLearner(object):
                 else:
                     file_name = write_to + "_by_row"
                 fd_file = open(file_name + ".txt", 'w')
-                attr_file = open(file_name + "_attr.txt", 'w')
+                # attr_file = open(file_name + "_attr.txt", 'w')
             
             # for i, attr in enumerate(U_hat):
             for i in range(U_hat.shape[0]):
@@ -193,10 +193,10 @@ class StructureLearner(object):
                 if len(parents) > 0:
                     s, _ = s_func((parents, attr))
                     fd_file.write("{} -> {}\n".format(",".join(parents), attr))
-                    attr_file.write(attr + "\n")
+                    # attr_file.write(attr + "\n")
                     print("{} -> {} ({})".format(",".join(parents), attr, s))
             fd_file.close()
-            attr_file.close()
+            # attr_file.close()
             return parent_sets
 
         if score == "training_data_fd_vio_ratio":

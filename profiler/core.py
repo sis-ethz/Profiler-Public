@@ -233,9 +233,9 @@ class Session(object):
         self.timer.time_end('Learn Structure')
         return results
 
-    def get_dependencies(self, heatmap=None, score="training_data_vio_ratio"):
+    def get_dependencies(self, heatmap=None, score="training_data_vio_ratio", write_to='FDs'):
         self.timer.time_start('Get Dependencies')
-        results = self.struct_engine.get_dependencies(heatmap=heatmap, score=score, write_to='./FDs')
+        results = self.struct_engine.get_dependencies(heatmap=heatmap, score=score, write_to=write_to)
         self.timer.time_end('Get Dependencies')
         print(results)
         return results
