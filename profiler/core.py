@@ -6,7 +6,9 @@ from profiler.data.embedding import EmbeddingEngine
 from profiler.learner import StructureLearner
 from profiler.globalvar import *
 import numpy as np
-import logging, os, random
+import logging
+import os
+import random
 
 
 logging.basicConfig()
@@ -14,7 +16,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-logging.basicConfig(format="%(asctime)s - [%(levelname)5s] - %(message)s", datefmt='%H:%M:%S')
+logging.basicConfig(
+    format="%(asctime)s - [%(levelname)5s] - %(message)s", datefmt='%H:%M:%S')
 root_logger = logging.getLogger()
 gensim_logger = logging.getLogger('gensim')
 root_logger.setLevel(logging.INFO)
@@ -108,11 +111,11 @@ flags = [
          'action': 'store_true',
          'help': 'enable inequality operators'}),
     (tuple(['--continuous']),
-         {'default': False,
-          'dest': 'continuous',
-          'action': 'store_true',
-          'help': "use [0,1] instead of {0,1} for operator [EQ, NEQ, GT, LT] evaluation"
-         }
+     {'default': False,
+      'dest': 'continuous',
+      'action': 'store_true',
+      'help': "use [0,1] instead of {0,1} for operator [EQ, NEQ, GT, LT] evaluation"
+      }
      )
 ]
 
@@ -223,7 +226,7 @@ class Session(object):
 
     def load_training_data(self, multiplier=None, sample_frac=1, difference=True):
         self.timer.time_start('Create Training Data')
-        self.trans_engine.create_training_data(multiplier=multiplier, sample_frac=sample_frac, 
+        self.trans_engine.create_training_data(multiplier=multiplier, sample_frac=sample_frac,
                                                embed=self.embed, difference=difference)
         self.timer.time_end('Create Training Data')
 
@@ -235,16 +238,17 @@ class Session(object):
 
     def get_dependencies(self, heatmap=None, score="training_data_vio_ratio", write_to='FDs'):
         self.timer.time_start('Get Dependencies')
-        results = self.struct_engine.get_dependencies(heatmap=heatmap, score=score, write_to=write_to)
+        results = self.struct_engine.get_dependencies(
+            heatmap=heatmap, score=score, write_to=write_to)
         self.timer.time_end('Get Dependencies')
         print(results)
         return results
 
-    def visualize_covariance(self):
-        self.struct_engine.visualize_covariance()
+    def visualize_covariance(self, filename='Covariance Matrix'):
+        self.struct_engine.visualize_covariance(filename=filename)
 
-    def visualize_inverse_covariance(self):
-        self.struct_engine.visualize_inverse_covariance()
+    def visualize_inverse_covariance(self, filename='Inverse Covariance Matrix'):
+        self.struct_engine.visualize_inverse_covariance(filename=filename)
 
-    def visualize_autoregression(self):
-        self.struct_engine.visualize_autoregression()
+    def visualize_autoregression(self, filename='Autoregression Matrix'):
+        self.struct_engine.visualize_autoregression(filename=filename)

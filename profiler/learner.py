@@ -86,8 +86,8 @@ class StructureLearner(object):
 
     # modified by Yunjia on 10/07/2019
     # output all the attrs that are involed in the FD
-    def visualize_inverse_covariance(self):
-        visualize_heatmap(self.inv_cov, title="Inverse Covariance Matrix", filename="Inverse Covariance Matrix")
+    def visualize_inverse_covariance(self, filename="Inverse Covariance Matrix"):
+        visualize_heatmap(self.inv_cov, title="Inverse Covariance Matrix", filename=filename)
 
         # clean up the diagnal for sum up 
         np_inv = self.inv_cov.values
@@ -100,7 +100,7 @@ class StructureLearner(object):
         
         col_num = np_abs_inv.shape[0]
         dict1 = {}
-        print("none-zero pairs of abs inv")
+        # print("none-zero pairs of abs inv")
         for i in range(col_num):
             for j in range(i+1, col_num):
                 if np_abs_inv[i,j] > 0:
@@ -130,15 +130,16 @@ class StructureLearner(object):
         # print("\n\nAttr w/ dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum > threshold)])
 
 
-    def visualize_covariance(self):
-        visualize_heatmap(self.cov, title="Covariance Matrix", filename="Covariance Matrix")
+    def visualize_covariance(self, filename='Covariance Matrix'):
+        visualize_heatmap(
+            self.cov, title="Covariance Matrix", filename=filename)
 
-    def visualize_autoregression(self):
+    def visualize_autoregression(self, filename="Autoregression Matrix"):
         if self.B is not None:
-            visualize_heatmap(self.B, title="Autoregression Matrix", filename="Autoregression Matrix")
+            visualize_heatmap(self.B, title="Autoregression Matrix", filename=filename)
         else:
             for i, B in enumerate(self.Bs):
-                visualize_heatmap(B, title="Autoregression Matrix (Part %d)"%(i+1), filename="Autoregression Matrix (Part %d)"%(i+1))
+                visualize_heatmap(B, title="Autoregression Matrix (Part %d)"%(i+1), filename= filename + " (Part %d)"%(i+1))
 
     def training_data_fd_violation(self, pair):
         left, right = pair
@@ -268,7 +269,7 @@ class StructureLearner(object):
         B_hat = StructureLearner.get_df(B, inv_cov.columns.values[perm])
         return B_hat
 
-    def estimate_inverse_covariance(self, cov, shrinkage=0.01):
+    def estimate_inverse_covariance(self, cov, shrinkage=0.0):
         """
         estimate inverse covariance matrix
         :param data: dataframe
@@ -637,6 +638,8 @@ def is_eq_dict(dic1, dic2):
 
 def plot_graph(graph, label=False, directed=False, circle=False, title=None):
     import networkx as nx
+    import matplotlib
+    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(12,6))
     if directed:
