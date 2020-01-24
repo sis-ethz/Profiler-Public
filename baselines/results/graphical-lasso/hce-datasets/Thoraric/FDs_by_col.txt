@@ -1,0 +1,16 @@
+pre4 -> pre6
+pre4 -> pre25
+pre4,pre6 -> pre5
+pre4,pre25,pre5 -> pre11
+pre6,pre25,pre11 -> pre32
+pre4,pre6,pre25,pre11,pre32 -> age
+pre4,pre25,pre5 -> pre9
+pre4,pre5,age -> dgn
+pre25,pre5,age -> pre8
+pre5,dgn,pre8 -> pre7
+age,pre9,dgn -> risk1yr
+pre4,age -> pre19
+pre4,age,pre19 -> pre14
+pre6,pre11 -> pre10
+age -> pre17
+pre32 -> pre30

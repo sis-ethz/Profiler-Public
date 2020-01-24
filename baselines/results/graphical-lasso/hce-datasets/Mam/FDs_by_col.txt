@@ -1,0 +1,5 @@
+rads -> age
+rads,age -> shape
+age,shape -> margin
+rads,age,shape -> density
+rads,age,shape,margin -> severity

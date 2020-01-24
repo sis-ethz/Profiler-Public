@@ -1,13 +1,2 @@
-PhoneNumber -> ProviderNumber
-PhoneNumber,ProviderNumber -> HospitalName
-PhoneNumber,ProviderNumber,HospitalName -> Address1
-PhoneNumber,ProviderNumber,HospitalName,Address1 -> City
-PhoneNumber,ProviderNumber,HospitalName,Address1,City -> ZipCode
-PhoneNumber,ProviderNumber,HospitalName,Address1,City,ZipCode -> CountyName
-PhoneNumber,ProviderNumber,HospitalName,Address1,CountyName -> HospitalOwner
-CountyName,HospitalOwner -> State
-CountyName,State -> EmergencyService
-State -> Condition
-Condition -> MeasureCode
-Condition,MeasureCode -> MeasureName
-MeasureCode,MeasureName -> Stateavg
+c_address -> c_phone
+c_address,c_phone -> c_acctbal

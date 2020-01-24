@@ -1,0 +1,60 @@
+README -- Description file attributes
+
+This file is part of TANE version 1.0.
+This is Copyrighted Material. See COPYING file for copying permission.
+Any comments or suggestions; see latest information at
+http://www.cs.helsinki.fi/research/fdk/datamining/tane.
+ 
+
+DESCRIPTION FILE ATTRIBUTES
+
+Umask = <value>
+	Sets umask for created files and directories. 
+	Example:  Umask = 007
+BaseName = <value>
+	The value of variable $BASENAME. Each occurrence of "$BASENAME" 
+	on the right-hand side will be replaced with this value. This is
+	also the name of the relation in the Savnik&Flach format output.
+	The default value is the name of the description file without 
+	path and extensions.
+DataIn = <file>
+	The input data file. The file must be in standard format, but can
+	contain non-integer data.
+Lines = <list>
+	The lines (tuples) of input data to be included in the output.
+	Example: Lines = 1,2,10-50,8,16,32
+NoOfCopies = <number>
+	Make <number> copies of each row. Default is 1.
+	Every value in each additional copy is replaced with a value that
+	is a function of the original value and the number of the copy.
+	That is, each value is different from the corresponding values 
+	in the original and other copies, but if two values in the original 
+	file are the same, then the corresponding values in i'th copies
+	are the same, too, for all i.
+AttributesIn = <file>
+	File containing the original attribute names of the input data.
+Attributes = <list>
+	Attributes of input data to be included in the output data.
+	Example: Attributes = AEDAC
+	Accepted attribute characters are [A-Za-z0-9_+] corresponding 
+	to attributes 1-64.
+AttributesOut = <file>
+	Output file for the original attribute names of the output data.
+ToIntegers = <boolean>
+	Whether to transform the values to integers or not. Default is on.
+	Values "OFF", "NO", "FALSE", "0", or nothing (empty) turn it off.
+StandardOut = <file>
+	Standard format output file.
+SavnikFlachOut = <file>
+	Savnik&Flach format output file.
+
+
+* All but DataIn are optional.
+* The order of attributes does not matter except BaseName affects only
+  attributes coming after it.
+* Lines beginning with '#' or not containing '=' are ignored.
+* Specifying files and directories:
+	- '-' is standard input/output.
+	- A path beginning with '/' is an absolute path.
+	- Otherwise the path is relative to the directory containing
+	  the description file.

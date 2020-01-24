@@ -1,0 +1,9 @@
+time_point,msg,execution_time
+0.027821302,start: Load Data,0
+0.355609655,end: Load Data,0.327788353
+0.372219086,start: Create Training Data,0
+0.867449045,end: Create Training Data,0.495229959
+0.894153118,start: Learn Structure,0
+2.681839228,end: Learn Structure,1.78768611
+2.689593315,start: Get Dependencies,0
+2.906218052,end: Get Dependencies,0.216624737

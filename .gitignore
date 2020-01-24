@@ -20,3 +20,4 @@ tutorials/**.png
 nohup.out
 .vscode
 ./tutorials/*.npy
+*.npy

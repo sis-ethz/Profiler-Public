@@ -1,0 +1,7 @@
+asia -> bronc (0.24958979097129216)
+bronc -> dysp (0.13136332960595135)
+asia,dysp -> lung (0.03710431946386078)
+dysp,lung -> either (0.012952730110455045)
+asia,bronc,dysp,lung,either -> smoke (0.26227147669490686)
+bronc,either,smoke -> tub (0.035631)
+dysp,lung,either,smoke,tub -> xray (0.04972019380754569)

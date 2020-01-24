@@ -1,4 +1,6 @@
 # Add global arguments
+import matplotlib
+matplotlib.use("Agg")
 from profiler.utility import GlobalTimer
 from profiler.data.dataset import Dataset
 from profiler.data.transformer import TransformEngine

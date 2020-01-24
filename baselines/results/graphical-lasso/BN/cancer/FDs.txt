@@ -1,0 +1,4 @@
+Dyspnoea -> Smoker (0.22358193603595866)
+Smoker -> Cancer (0.007833195632359458)
+Dyspnoea,Smoker,Cancer -> Pollution (0.09331153546813438)
+Dyspnoea,Smoker,Cancer -> Xray (0.18599569064707205)

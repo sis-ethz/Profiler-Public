@@ -1,0 +1,32 @@
+GETTINGSTARTED -- Getting started with TANE
+
+This file is part of TANE version 1.0.
+This is Copyrighted Material. See COPYING file for copying permission.
+Any comments or suggestions; see latest information at
+http://www.cs.helsinki.fi/research/fdk/datamining/tane.
+ 
+
+1. Install the software and prepare your own datasets. See installation
+   instructions in the file INSTALLATION.
+
+
+2. Get the papers of TANE. Papers are available to download at
+   http://www.cs.helsinki.fi/research/pmdm/tane.
+
+
+3. Run TANE. For example at TANE home directory,
+
+   % bin/tane 11 100 11 data/testdata.dat
+   % bin/tanemem 11 100 11 data/testdata.dat
+   % bin/taneg3 11 100 11 data/testdata.dat 0.1
+
+   To get more information about command line parameters use command
+   without any parameters.
+
+   Tip, redirect output of the program to log file, for example,
+
+   % bin/tanemem 11 100 11 data/testdata.dat &> testdrive.log
+   % more testdrive.log
+
+
+4. Enjoy!

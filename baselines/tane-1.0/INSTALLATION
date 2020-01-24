@@ -1,0 +1,89 @@
+INSTALLATION -- Installation instructions of TANE
+
+This file is part of TANE version 1.0.
+This is Copyrighted Material. See COPYING file for copying permission.
+Any comments or suggestions; see latest information at
+http://www.cs.helsinki.fi/research/fdk/datamining/tane.
+ 
+
+INSTALLING SOURCE CODE
+
+1. Binary download the archive Tane-1.0.tar.gz to, for example /tmp
+
+2. Uncompress the archive with for example gunzip
+   % gunzip tane-1.0.tar.gz
+
+3. Decide where you want the TANE reside. Create directory and move
+   package to that directory. For example,
+   % mkdir /usr/tane
+   % mv tane-1.0.tar /usr/tane
+
+4. Uncpack the package with tar.
+   % cd /usr/tane
+   % tar xvf tane-1.0.tar
+
+   After tar command, you should have the following directory structure
+   and files:
+
+	COPYING
+	GETTINGSTARTED
+	GGPLICENSE
+	INSTALLATION
+	bin/
+	bin/select.perl
+	data/
+	descriptions/
+	descriptions/testadata.dsc
+	descriptions/README
+	original/
+	original/testdata.orig
+	src/
+	src/Makefile
+	src/data2int.c
+	src/data2int.h
+	src/dependencies.c
+	src/extBitset.c
+	src/extBitset.h
+	src/extCandidate.c
+	src/extCandidate.h
+	src/extG3Tbl.c
+	src/extG3Tbl.h
+	src/extHashTable.c
+	src/extHashTable.h
+	src/extInputOutput.c
+	src/extInputOutput.h
+	src/extIntersectionTbl.c
+	src/extIntersectionTbl.h
+	src/extPartition.c
+	src/extPartition.h
+	src/extPartitionFile.c
+	src/extPartitionFile.h
+
+
+5. Compiling the package move to the src directory and give make command.
+
+   For example,
+   % cd src
+   % make
+
+   Make automatically compiles necessary files and installs binary
+   executables to the bin directory. After succesfully compilation you are
+   ready to use TANE.
+
+
+INSTALLING NEW DATASETS
+
+1. Copy original dataset to directory original.
+
+2. Create a new description file for dataset. Descriptions resides at directory
+   descriptions. See existing descriptions and README file for instructions
+   to create a new dataset description. For example,
+
+   % cd descriptions
+   % copy testdata.dsc xyz.dsc
+   and edit file xyz.dat
+
+3. Create new dataset by using select.perl command. For example,
+
+   % cd descriptions
+   % ../bin/select.perl testdata.dsc

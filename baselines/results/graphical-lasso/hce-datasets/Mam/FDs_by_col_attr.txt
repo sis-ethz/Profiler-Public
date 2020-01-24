@@ -1,0 +1,5 @@
+age
+shape
+margin
+density
+severity

@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 from sklearn.covariance import graphical_lasso
 from sklearn import covariance
 from profiler.utility import find_all_subsets, visualize_heatmap
