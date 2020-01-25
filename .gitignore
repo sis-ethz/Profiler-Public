@@ -6,7 +6,7 @@
 .idea/*
 **.ipynb_checkpoints
 **-checkpoint.ipynb
-tutorials/data/TECHospital.csv
+tutorials/data/TECHospital.csv`
 datasets/*
 tutorials/data/large_data/
 tutorials/data/nypd/
