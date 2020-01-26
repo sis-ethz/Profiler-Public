@@ -1,0 +1,9 @@
+shape->rads
+margin->rads
+severity->rads
+rads->severity
+age->severity
+shape->severity
+margin->severity
+age,margin->shape
+run time: 0.008368
