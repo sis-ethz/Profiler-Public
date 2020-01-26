@@ -3,14 +3,16 @@ import time
 import numpy as np
 import pandas as pd
 import subprocess
+import re
+
 
 dataset_arg = {
-    'alarm': (),
-    'asia': (),
+    'alarm': (37, 1000, 37),
+    'asia': (8, 1000, 8),
     'australian': (),
-    'cancer': (),
-    'child': (),
-    'earthquake': (),
+    'cancer': (5, 1000, 5),
+    'child': (20, 1000, 20),
+    'earthquake': (5, 1000, 5),
     'hospital': (),
     'mam': (),
     'nypd': (),
@@ -62,25 +64,36 @@ def run_cmd(cmd):
     return result, total_time
 
 
-def get_fd(cmd_result, dataset_name=None):
+def get_fd_list(cmd_result, dataset_name=None):
     # select the columns that contain fd
     cmd_res_list = cmd_result.split('\n')
-    ret_fd_str = []
+    ret_fd_str_list = []
     for line in cmd_res_list:
         if '->' in line:
-            ret_fd_str.append(line)
-    return ret_fd_str
+            regex = re.compile(".*?\((.*?)\)")
+            line = re.findall(regex, line)
+            ret_fd_str_list.append(line)
+            print("[Info]: found raw fd str: %s" % (line))
+    return ret_fd_str_list
 
 
-def translate_fd(fd_str_list, dataset_name):
+def translate_fd_list(fd_str_list, dataset_name):
     translated_fd_list = []
     col_dict = read_col_name(dataset_name)
     for fd_str in fd_str_list:
-        if fd_str.startwith('->'):
+        if fd_str.startwith('->') or '->' not in fd_str:
+            print('[Info]: ignore illegal fd string -- ', fd_str)
             continue
         else:
-
-    return translated_fd_str
+            determinants = fd_str.split('->')[0].replace(' ', '').split(',')
+            dependents = fd_str.split('->')[1].replace(' ', '').split(',')
+            for i in len(determinants):
+                determinants[i] = col_dict[determinants[i]]
+            for j in len(dependents):
+                dependents[i] = col_dict[dependents[j]]
+        translated_fd_list.append(
+            '%s->%s' % (','.join(determinants), ','.join(dependents)))
+    return translated_fd_list
 
 
 if __name__ == '__main__':
