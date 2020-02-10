@@ -1,28 +1,28 @@
-Ground truth pairs,Inferred pairs,Weight,AutoFD,AutoFD gd,GL,PYRO,RFI-top1-a-1,RFI-top1-a-0.5,RFI-top1-a-0.3,RFI-top5-a-1,,Ground truth pairs extended
-asia -> tub,lung -> either,206.6805353,lung -> smoke ,either -> dysp,asia -> bronc,xray -> either,either -> xray,either -> xray,either -> xray,either -> xray,,asia ->  tub
-smoke -> lung,either -> tub,194.0658882,lung -> bronc ,either -> lung,bronc -> dysp,bronc -> asia,either -> bronc,either -> bronc,dysp -> bronc,asia -> xray,,smoke -> lung
-tub -> either,lung -> tub,186.5930524,smoke -> bronc ,either -> tub,asia -> lung,smoke -> asia,smoke -> bronc,smoke -> bronc,smoke -> bronc,tub -> xray,,somke -> bronc
-lung -> either,xray -> either,9.788728171,lung -> dysp ,either -> asia,dysp -> lung,either -> lung,dysp -> bronc,dysp -> bronc,smoke -> asia,lung -> xray,,lung -> either
-either -> xray,bronc -> dysp,2.626188382,smoke -> dysp ,either -> xray,dysp -> either,xray -> tub,smoke -> asia,smoke -> asia,dysp -> asia,either -> bronc,,tub -> either
-,asia -> tub,1.178978723,bronc -> dysp ,dysp -> bronc,lung -> either,xray -> lung,dysp -> asia,dysp -> asia,lung -> asia,smoke -> bronc,,either -> xray
-,xray -> tub,0.927550293,lung -> either ,,asia -> smoke,either -> tub,lung -> asia,lung -> asia,either -> dysp,dysp -> bronc,,bronc -> dysp
-,dysp -> either,0.890942717,smoke -> either ,,bronc -> smoke,dysp -> asia,smoke -> dysp,smoke -> dysp,tub -> lung,xray -> bronc,,either -> dysp
-,asia -> either,0.702279809,dysp -> either ,,dysp -> smoke,bronc -> tub,either -> dysp,either -> dysp,either -> lung,lung -> bronc,,
-,dysp -> tub,0.679598682,smoke -> tub ,,lung -> smoke,smoke -> tub,tub -> lung,tub -> lung,tub -> either,asia -> bronc,,
-,dysp -> lung,0.632542991,bronc -> tub ,,either -> smoke,dysp -> tub,either -> lung,either -> lung,lung -> smoke,smoke -> asia,,
-,,,dysp -> tub ,,bronc -> tub,bronc -> either,tub -> either,tub -> either,dysp -> smoke,dysp -> asia,,
-,,,either -> tub ,,either -> tub,smoke -> either,lung -> smoke,lung -> smoke,,lung -> asia,,
-,,,lung -> asia ,,smoke -> tub,lung -> asia,,,,either -> asia,,
-,,,tub -> asia ,,dysp -> xray,xray -> asia,,,,tub -> asia,,
-,,,lung -> xray ,,lung -> xray,dysp -> either,,,,smoke -> dysp,,
-,,,either -> xray ,,either -> xray,either -> asia,,,,either -> dysp,,
-,,,tub -> xray,,smoke -> xray,,,,,xray -> dysp,,
-,,,,,tub -> xray,,,,,tub -> dysp,,
-,,,,,,,,,,tub -> lung,,
-,,,,,,,,,,either -> lung,,
-,,,,,,,,,,dysp -> lung,,
-,,,,,,,,,,smoke -> lung,,
-,,,,,,,,,,tub -> either,,
-,,,,,,,,,,smoke -> either,,
-,,,,,,,,,,tub -> smoke,,
-,,,,,,,,,,xray -> smoke,,
+Ground truth pairs,Inferred pairs,Weight,AutoFD,AutoFD gd,GL,PYRO,RFI-top1-a-1,RFI-top1-a-0.5,RFI-top1-a-0.3,RFI-top5-a-1,,Ground truth pairs extended,TANE,AutoFD_amd,AutoFD_colamd,AutoFD_metis,AutoFD_natural,AutoFD_nesdis
+asia -> tub,lung -> either,206.6805353,lung -> smoke ,either -> dysp,asia -> bronc,xray -> either,either -> xray,either -> xray,either -> xray,either -> xray,,asia ->  tub,dysp->bronc,asia -> dysp,asia -> dysp,lung -> smoke,asia -> bronc,asia -> dysp
+smoke -> lung,either -> tub,194.0658882,lung -> bronc ,either -> lung,bronc -> dysp,bronc -> asia,either -> bronc,either -> bronc,dysp -> bronc,asia -> xray,,smoke -> lung,bronc->dysp,"asia,dysp -> bronc","asia,dysp -> bronc","lung,smoke -> bronc","asia,bronc -> dysp","asia,dysp -> bronc"
+tub -> either,lung -> tub,186.5930524,smoke -> bronc ,either -> tub,asia -> lung,smoke -> asia,smoke -> bronc,smoke -> bronc,smoke -> bronc,tub -> xray,,somke -> bronc,,"asia,dysp,bronc -> lung","asia,dysp,bronc -> lung","lung,smoke,bronc -> xray","asia,bronc,dysp -> lung","asia,dysp,bronc -> lung"
+lung -> either,xray -> either,9.788728171,lung -> dysp ,either -> asia,dysp -> lung,either -> lung,dysp -> bronc,dysp -> bronc,smoke -> asia,lung -> xray,,lung -> either,,"asia,dysp,lung -> either","asia,dysp,lung -> either","lung,smoke,bronc,xray -> tub","asia,dysp,lung -> either","asia,dysp,lung -> either"
+either -> xray,bronc -> dysp,2.626188382,smoke -> dysp ,either -> xray,dysp -> either,xray -> tub,smoke -> asia,smoke -> asia,dysp -> asia,either -> bronc,,tub -> either,,"asia,dysp,bronc,lung -> smoke","asia,dysp,bronc,lung -> smoke","lung,smoke,bronc,tub -> asia","asia,bronc,dysp,lung -> smoke","asia,dysp,bronc,lung -> smoke"
+,asia -> tub,1.178978723,bronc -> dysp ,dysp -> bronc,lung -> either,xray -> lung,dysp -> asia,dysp -> asia,lung -> asia,smoke -> bronc,,either -> xray,,"asia,dysp,bronc,either,smoke -> tub","asia,dysp,bronc,either,smoke -> tub","lung,xray,tub -> either","asia,bronc,dysp,either,smoke -> tub","asia,dysp,bronc,either,smoke -> tub"
+,xray -> tub,0.927550293,lung -> either ,,asia -> smoke,either -> tub,lung -> asia,lung -> asia,either -> dysp,dysp -> bronc,,bronc -> dysp,,"asia,lung,either,tub -> xray","asia,lung,either,tub -> xray","lung,bronc,tub,asia -> dysp","asia,lung,either,tub -> xray","asia,lung,either,tub -> xray"
+,dysp -> either,0.890942717,smoke -> either ,,bronc -> smoke,dysp -> asia,smoke -> dysp,smoke -> dysp,tub -> lung,xray -> bronc,,either -> dysp,,,,,,
+,asia -> either,0.702279809,dysp -> either ,,dysp -> smoke,bronc -> tub,either -> dysp,either -> dysp,either -> lung,lung -> bronc,,,,,,,,
+,dysp -> tub,0.679598682,smoke -> tub ,,lung -> smoke,smoke -> tub,tub -> lung,tub -> lung,tub -> either,asia -> bronc,,,,,,,,
+,dysp -> lung,0.632542991,bronc -> tub ,,either -> smoke,dysp -> tub,either -> lung,either -> lung,lung -> smoke,smoke -> asia,,,,,,,,
+,,,dysp -> tub ,,bronc -> tub,bronc -> either,tub -> either,tub -> either,dysp -> smoke,dysp -> asia,,,,,,,,
+,,,either -> tub ,,either -> tub,smoke -> either,lung -> smoke,lung -> smoke,,lung -> asia,,,,,,,,
+,,,lung -> asia ,,smoke -> tub,lung -> asia,,,,either -> asia,,,,,,,,
+,,,tub -> asia ,,dysp -> xray,xray -> asia,,,,tub -> asia,,,,,,,,
+,,,lung -> xray ,,lung -> xray,dysp -> either,,,,smoke -> dysp,,,,,,,,
+,,,either -> xray ,,either -> xray,either -> asia,,,,either -> dysp,,,,,,,,
+,,,tub -> xray,,smoke -> xray,,,,,xray -> dysp,,,,,,,,
+,,,,,tub -> xray,,,,,tub -> dysp,,,,,,,,
+,,,,,,,,,,tub -> lung,,,,,,,,
+,,,,,,,,,,either -> lung,,,,,,,,
+,,,,,,,,,,dysp -> lung,,,,,,,,
+,,,,,,,,,,smoke -> lung,,,,,,,,
+,,,,,,,,,,tub -> either,,,,,,,,
+,,,,,,,,,,smoke -> either,,,,,,,,
+,,,,,,,,,,tub -> smoke,,,,,,,,
+,,,,,,,,,,xray -> smoke,,,,,,,,

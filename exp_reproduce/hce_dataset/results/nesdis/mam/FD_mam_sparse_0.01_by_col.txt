@@ -1,0 +1,4 @@
+age -> shape
+age,shape -> margin
+age,shape,margin -> density
+age,shape,margin,density -> severity

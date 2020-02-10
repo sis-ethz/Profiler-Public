@@ -102,4 +102,5 @@ RUQO2,Age,LowerBodyO2,DuctFlow,LungFlow->HypoxiaInO2
 RUQO2,Age,LowerBodyO2,HypoxiaInO2,ChestXray->DuctFlow
 RUQO2,Age,LowerBodyO2,DuctFlow,ChestXray->HypoxiaInO2
 RUQO2,Age,LowerBodyO2,LungFlow,HypoxiaInO2->Disease
-run time: 0.056019
+run time: 0.044357
+0.116

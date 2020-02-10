@@ -1,0 +1,4 @@
+xray -> asia
+xray,asia -> lung
+xray,asia,lung -> either
+xray,asia,lung,either -> tub

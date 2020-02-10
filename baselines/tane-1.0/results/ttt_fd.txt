@@ -96,4 +96,5 @@ tls,tms,trs,mms,mrs,bms,brs->mls
 tls,tms,trs,mms,mrs,bms,brs->bls
 tls,tms,trs,mms,mrs,bms,brs->class
 tls,tms,trs,mms,bls,bms,brs->mls
-run time: 0.087818
+run time: 0.063518
+0.033

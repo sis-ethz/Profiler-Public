@@ -32,6 +32,8 @@ class StructureLearner(object):
             'take_neg': False,
             'take_pos': False,
             'infer_order': False,
+            'ordering_method': 'heu',
+            'shrinkage': 0.0
         }
         self.width = -1
         self.cov = None
@@ -47,20 +49,22 @@ class StructureLearner(object):
     def learn(self, **kwargs):
         self.param.update(kwargs)
         self.cov = self.estimate_covariance()
-        self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
+        self.inv_cov, _ = self.estimate_inverse_covariance(
+            self.cov.values, shrinkage=self.param['shrinkage'])
         # self.visualize_inverse_covariance()
         if np.all(np.linalg.eigvals(self.inv_cov) > 0) == False:
             return np.zeros([self.inv_cov.shape[0], self.inv_cov.shape[1]])
         if not self.param['infer_order']:
             self.B = self.upper_decompose(self.inv_cov)
         else:
-            self.B = self.upper_decompose_ordered(self.inv_cov)
+            self.B = self.upper_decompose_ordered(
+                self.inv_cov, ordering_method=self.param['ordering_method'])
         return self.B
 
     def learn_separate(self, **kwargs):
         self.param.update(kwargs)
         self.cov = self.estimate_covariance()
-        self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values)
+        self.inv_cov, _ = self.estimate_inverse_covariance(self.cov.values, shrinkage=self.param['shrinkage'])
         G = self.session.struct_engine.recover_moral_graphs(self.inv_cov)
         Gs = G.get_undirected_connected_components()
         self.Bs = [self.upper_decompose(self.inv_cov.iloc[list(g.idx_to_name.keys()),
@@ -227,6 +231,7 @@ class StructureLearner(object):
         return df
 
     def get_ordering(self, inv_cov):
+        # using minimum degree orderings
         G = self.recover_moral_graphs(inv_cov)
         order = []
         while G.degrees.shape[0] > 0:
@@ -247,13 +252,25 @@ class StructureLearner(object):
         B = StructureLearner.get_df(B, np.flip(np.flip(inv_cov.columns.values)[factor.P()]))
         return B
 
-    def upper_decompose_ordered(self, inv_cov):
-        order = self.get_ordering(inv_cov)
+    def upper_decompose_ordered(self, inv_cov, ordering_method='heu'):
+        print("[Info]: Using ordering method: %s" % ordering_method)
+        if ordering_method == 'heu':
+            order = self.get_ordering(inv_cov)
+        elif ordering_method in ['natural', 'amd', 'metis', 'nesdis', 'colamd', 'default', 'best']:
+            K = sparse.csc_matrix(inv_cov)
+            K = analyze(K, ordering_method=ordering_method)
+            order = K.P()
+        else:
+            print("[Error]: Received wrong ordering method: ", ordering_method)
+            raise ValueError("Invalid ordering parameter: %s" % ordering_method)
+            exit(1)
+
         K = inv_cov.iloc[order, order]
         I = np.eye(inv_cov.shape[0])
         P = np.rot90(I)
         PAP = np.dot(np.dot(P, K), P.transpose())
         PAP = sparse.csc_matrix(PAP)
+
         factor = cholesky(PAP)
         L = factor.L_D()[0].toarray()
         U = np.dot(np.dot(P, L), P.transpose())
@@ -271,7 +288,7 @@ class StructureLearner(object):
         B_hat = StructureLearner.get_df(B, inv_cov.columns.values[perm])
         return B_hat
 
-    def estimate_inverse_covariance(self, cov, shrinkage=0.0):
+    def estimate_inverse_covariance(self, cov, shrinkage=0):
         """
         estimate inverse covariance matrix
         :param data: dataframe
@@ -314,7 +331,8 @@ class StructureLearner(object):
         # if X.dtype is np.str:
         #     print("X has type str rather than float!")
         #     print(X[:5,:])
-        # X = X - np.mean(X, axis=0)
+        #==============================================================
+        X = X - np.mean(X, axis=0)
         # with missing value
         cov = np.dot(X.T, X) / X.shape[0]
         m = np.ones((cov.shape[0], cov.shape[1])) * (1/np.square(1-self.session.trans_engine.null_pb))

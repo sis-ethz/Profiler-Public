@@ -1,11 +1,11 @@
-Ground truth pairs,Inferred pairs,Weight,AutoFD,AutoFD gd,GL,PYRO,RFI-top1-a-1,RFI-top1-a-0.5,RFI-top1-a-0.3,RFI-top5-a-1,,Ground truth pairs extended
-Pollution -> Cancer,Smoker -> Cancer,1.000126247,Cancer -> Pollution,Cancer -> Smoker,Dyspnoea -> Smoker,Xray -> Cancer,Cancer -> Xray,Cancer -> Xray,Cancer -> Xray,Cancer -> Xray,,Smoker -> Cancer
-Smoker -> Cancer,Xray -> Cancer,0.588086254,Cancer -> Smoker,Cancer -> Dyspnoea,Smoker -> Cancer,Smoker -> Cancer,Smoker -> Xray,Smoker -> Xray,Smoker -> Xray,Smoker -> Xray,,Pollution-> Cancer
-Cancer -> Xray,Dyspnoea -> Cancer,0.511932597,Cancer -> Dyspnoea,Cancer -> Xray,Dyspnoea -> Pollution,Dyspnoea -> Cancer,Cancer -> Dyspnoea,Cancer -> Dyspnoea,Cancer -> Dyspnoea,Pollution -> Xray,,Cancer -> Xray
-,,,Cancer -> Xray,,Smoker -> Pollution,,Smoker -> Dyspnoea,Smoker -> Dyspnoea,Smoker -> Dyspnoea,Dyspnoea -> Xray,,Cancer -> Dyspnoea
-,,,,,Cancer -> Pollution,,Cancer -> Smoker,Cancer -> Smoker,Cancer -> Smoker,Cancer -> Dyspnoea,,
-,,,,,Dyspnoea -> Xray,,Pollution -> Smoker,Pollution -> Smoker,Pollution -> Smoker,Smoker -> Dyspnoea,,
-,,,,,Smoker -> Xray,,Pollution -> Cancer,Pollution -> Cancer,Pollution -> Cancer,Pollution -> Dyspnoea,,
-,,,,,Cancer -> Xray,,,,,Cancer -> Smoker,,
-,,,,,,,,,,Pollution -> Smoker,,
-,,,,,,,,,,Pollution -> Cancer,,
+Ground truth pairs,Inferred pairs,Weight,AutoFD,AutoFD gd,GL,PYRO,RFI-top1-a-1,RFI-top1-a-0.5,RFI-top1-a-0.3,RFI-top5-a-1,,Ground truth pairs extended,TANE,AutoFD_amd,AutoFD_colamd,AutoFD_metis,AutoFD_natural,AutoFD_nesdis
+Pollution -> Cancer,Smoker -> Cancer,1.000126247,Cancer -> Pollution,Cancer -> Smoker,Dyspnoea -> Smoker,Xray -> Cancer,Cancer -> Xray,Cancer -> Xray,Cancer -> Xray,Cancer -> Xray,,Smoker -> Cancer,,Smoker -> Xray,Smoker -> Xray,Cancer -> Smoker,Smoker -> Dyspnoea,Smoker -> Xray
+Smoker -> Cancer,Xray -> Cancer,0.588086254,Cancer -> Smoker,Cancer -> Dyspnoea,Smoker -> Cancer,Smoker -> Cancer,Smoker -> Xray,Smoker -> Xray,Smoker -> Xray,Smoker -> Xray,,Pollution-> Cancer,,"Smoker,Xray -> Cancer","Smoker,Xray -> Cancer",Cancer -> Dyspnoea,"Smoker,Dyspnoea -> Cancer","Smoker,Xray -> Cancer"
+Cancer -> Xray,Dyspnoea -> Cancer,0.511932597,Cancer -> Dyspnoea,Cancer -> Xray,Dyspnoea -> Pollution,Dyspnoea -> Cancer,Cancer -> Dyspnoea,Cancer -> Dyspnoea,Cancer -> Dyspnoea,Pollution -> Xray,,Cancer -> Xray,,"Smoker,Xray,Cancer -> Pollution","Smoker,Xray,Cancer -> Pollution","Cancer,Smoker,Dyspnoea -> Pollution","Smoker,Dyspnoea,Cancer -> Pollution","Smoker,Xray,Cancer -> Pollution"
+,,,Cancer -> Xray,,Smoker -> Pollution,,Smoker -> Dyspnoea,Smoker -> Dyspnoea,Smoker -> Dyspnoea,Dyspnoea -> Xray,,Cancer -> Dyspnoea,,"Cancer,Pollution -> Dyspnoea","Cancer,Pollution -> Dyspnoea","Cancer,Pollution -> Xray","Cancer,Pollution -> Xray","Cancer,Pollution -> Dyspnoea"
+,,,,,Cancer -> Pollution,,Cancer -> Smoker,Cancer -> Smoker,Cancer -> Smoker,Cancer -> Dyspnoea,,,,,,,,
+,,,,,Dyspnoea -> Xray,,Pollution -> Smoker,Pollution -> Smoker,Pollution -> Smoker,Smoker -> Dyspnoea,,,,,,,,
+,,,,,Smoker -> Xray,,Pollution -> Cancer,Pollution -> Cancer,Pollution -> Cancer,Pollution -> Dyspnoea,,,,,,,,
+,,,,,Cancer -> Xray,,,,,Cancer -> Smoker,,,,,,,,
+,,,,,,,,,,Pollution -> Smoker,,,,,,,,
+,,,,,,,,,,Pollution -> Cancer,,,,,,,,

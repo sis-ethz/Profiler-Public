@@ -1,0 +1,15 @@
+CO2 -> CO2Report
+CardiacMixing -> DuctFlow
+CardiacMixing,DuctFlow -> Disease
+Disease -> LungFlow
+LungFlow -> ChestXray
+ChestXray -> LungParench
+LungParench -> Grunting
+Grunting -> GruntingReport
+ChestXray -> XrayReport
+Disease -> LVH
+LVH -> LVHreport
+DuctFlow -> HypDistrib
+HypDistrib -> BirthAsphyxia
+HypDistrib -> Sick
+CardiacMixing -> HypoxiaInO2

@@ -6,4 +6,5 @@ age->severity
 shape->severity
 margin->severity
 age,margin->shape
-run time: 0.008368
+run time: 0.010612
+0.06

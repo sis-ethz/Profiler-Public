@@ -21,3 +21,7 @@ nohup.out
 .vscode
 ./tutorials/*.npy
 *.npy
+*.csv
+*.orig
+*.bif
+*.sqlite

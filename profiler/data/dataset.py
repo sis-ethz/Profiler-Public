@@ -1,7 +1,8 @@
 from profiler.globalvar import *
 import pandas as pd
 import numpy as np
-import logging, json
+import logging
+import json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -38,18 +39,22 @@ class Dataset(object):
 
         if src == FILE:
             if fpath is None:
-                raise Exception("ERROR while loading table. File path for CSV file name expected. Please provide <fpath> param.")
+                raise Exception(
+                    "ERROR while loading table. File path for CSV file name expected. Please provide <fpath> param.")
+            # print("In dataset: Reading: ", fpath)
             self.df = pd.read_csv(fpath, encoding=param['encoding'], header=param['header'], sep=param['sep'],
-                                  na_values=param['na_values'])
+                                  na_values=param['na_values'], engine='python')
             # Normalize the dataframe: drop null columns, convert to lowercase strings, and strip whitespaces.
             for attr in self.df.columns.values:
                 if self.df[attr].isnull().all():
-                    logger.warning("Dropping the following null column from the dataset: '%s'", attr)
+                    logger.warning(
+                        "Dropping the following null column from the dataset: '%s'", attr)
                     self.df.drop(labels=[attr], axis=1, inplace=True)
                     continue
         elif src == DF:
             if df is None:
-                raise Exception("ERROR while loading table. Dataframe expected. Please provide <df> param.")
+                raise Exception(
+                    "ERROR while loading table. Dataframe expected. Please provide <df> param.")
             self.df = df
         elif src == DB:
             raise Exception("Not Implemented")
@@ -80,7 +85,8 @@ class Dataset(object):
             # strip whitespaces, and convert to lowercase
             if np.issubdtype(t, np.number) or np.issubdtype(t, np.datetime64):
                 continue
-            self.df.iloc[:, i] = self.df.iloc[:, i].astype(str).str.strip().str.lower()
+            self.df.iloc[:, i] = self.df.iloc[:, i].astype(
+                str).str.strip().str.lower()
 
     def replace_null(self, attr=None):
         def replace_null_helper(attr):
@@ -112,12 +118,13 @@ class Dataset(object):
             self.dtypes[self.field[i]] = CATEGORICAL
             self.infer_operator(self.field[i])
 
-        logger.info("inferred types of attributes: {}".format(json.dumps(self.dtypes, indent=4)))
+        logger.info("inferred types of attributes: {}".format(
+            json.dumps(self.dtypes, indent=4)))
         logger.info("(possible types: %s)" % (", ".join(DATA_TYPES)))
         self.original_dtypes = self.dtypes
-        logger.info("inferred operators of attributes: {}".format(self.operators))
+        logger.info(
+            "inferred operators of attributes: {}".format(self.operators))
         logger.info("(possible operators: %s)" % (", ".join(OPERATORS)))
-
 
     def change_dtypes(self, names, types, regexs):
 
@@ -146,14 +153,16 @@ class Dataset(object):
                 self.df[n] = df.astype('str')
                 logger.info("updated types of {} to '{}'".format(n, tp))
             self.infer_operator(n)
-            logger.info("updated operators of {} to {}".format(n, self.operators[n]))
+            logger.info("updated operators of {} to {}".format(
+                n, self.operators[n]))
 
         if isinstance(names, str):
             update(names, types, regexs)
         else:
             for name, t, regex in zip(names, types, regexs):
                 update(name, t, regex)
-        logger.info("updated inferred operators of attributes: {}".format(self.operators))
+        logger.info(
+            "updated inferred operators of attributes: {}".format(self.operators))
 
     def infer_operator(self, attr):
         if (self.dtypes[attr] in [NUMERIC, DATE]) and self.env['inequality']:

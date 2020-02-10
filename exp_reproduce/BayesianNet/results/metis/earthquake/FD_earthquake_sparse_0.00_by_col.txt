@@ -1,0 +1,4 @@
+JohnCalls -> Burglary
+JohnCalls,Burglary -> Alarm
+Alarm -> Earthquake
+Alarm -> MaryCalls

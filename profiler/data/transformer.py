@@ -178,6 +178,7 @@ class TransformEngine(object):
         p = np.sum([len(op) for op in self.ds.operators.values()])
         min_n = 1/np.square(self.env['eps'])*np.log(p)*(np.square(p)/2+0.5)
         multiplier = int(np.ceil(min_n / (self.ds.df.shape[0] * self.ds.df.shape[1] * sample_frac)))
+        # multiplier
         logger.info("needs multiplier = %d to bound the error in inv cov estimation <= %.8f"%(multiplier, self.env['eps']))
         multiplier = min(max(1, multiplier), self.ds.df.shape[0]-1)
         self.env['eps'] = (np.sqrt(np.square(p-1)/2+p) / (multiplier*self.ds.df.shape[0]))
@@ -235,7 +236,9 @@ class TransformEngine(object):
 
     def get_multiplier(self, multiplier, sample_frac):
         if multiplier is None:
-            multiplier = self.estimate_sample_size(sample_frac)
+            # set min multiplier to 10
+            multiplier = max(self.estimate_sample_size(sample_frac), 8)
+            logger.info("Using multiplier %d" % multiplier)
         # conservative sample size, did not multiply by number of attributes since there may have repeated samples
         self.sample_size = multiplier * int(np.ceil(self.ds.df.shape[0] * sample_frac / self.ds.df.shape[1]))
         return multiplier

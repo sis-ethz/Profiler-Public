@@ -653,4 +653,5 @@ HospitalOwner,Score,Stateavg->MeasureCode
 HospitalOwner,Score,Stateavg->MeasureName
 HospitalOwner,Score,Stateavg->Sample
 CountyName,Condition,Score->Sample
-run time: 0.010292
+run time: 0.041543
+0.119

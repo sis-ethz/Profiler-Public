@@ -1,0 +1,7 @@
+bronc -> dysp
+dysp -> lung
+dysp,lung -> either
+bronc,lung -> smoke
+bronc,either,smoke -> tub
+bronc,lung -> asia
+either -> xray

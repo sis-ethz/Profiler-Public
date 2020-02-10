@@ -1,3 +1,4 @@
 dysp->bronc
 bronc->dysp
-run time: 0.007452
+run time: 0.025542
+0.065

@@ -1,0 +1,9 @@
+Column_6 -> Column_3
+Column_6,Column_3 -> Column_5
+Column_6,Column_3,Column_5 -> Column_7
+Column_6,Column_5,Column_7 -> Column_8
+Column_6,Column_3,Column_5,Column_7,Column_8 -> Column_9
+Column_5,Column_7,Column_9 -> Column_10
+Column_3 -> Column_2
+Column_6,Column_3,Column_7 -> Column_4
+Column_3,Column_8 -> Column_1

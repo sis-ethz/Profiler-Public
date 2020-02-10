@@ -1,0 +1,7 @@
+Column_7 -> Column_4
+Column_4 -> Column_5
+Column_7,Column_4 -> Column_6
+Column_6 -> Column_2
+Column_2 -> Column_1
+Column_2 -> Column_3
+Column_1 -> Column_0

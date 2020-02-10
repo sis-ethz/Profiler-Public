@@ -9,6 +9,7 @@ import json
 
 dataset_names = ['asia', 'cancer', 'alarm', 'australian', 'child',
                  'earthquake', 'hospital', 'mam', 'nypd', 'thoraric', 'ttt']
+
 CMD = 'python3 run_tane_exp.py {}'
 
 cmds = [CMD.format(cmd) for cmd in dataset_names]

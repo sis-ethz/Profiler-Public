@@ -1,0 +1,4 @@
+dysp -> bronc
+lung -> xray
+lung,xray -> either
+either -> tub

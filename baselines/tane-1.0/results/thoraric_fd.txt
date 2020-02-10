@@ -51,4 +51,5 @@ pre5,age->pre30
 pre5,age->pre32
 pre5,age->risk1yr
 pre14,age->pre6
-run time: 0.006555
+run time: 0.026435
+0.1

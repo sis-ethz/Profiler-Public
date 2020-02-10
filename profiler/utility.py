@@ -89,10 +89,12 @@ class GlobalTimer(object):
         logger.info(info)
         return exec_time
 
-    def to_csv(self):
+    def to_csv(self, filename='time_points'):
+        if 'csv' not in filename:
+            filename += '.csv'
         log = pd.DataFrame(data=self.time_log, columns=[
                            'time_point', 'msg', 'execution_time'])
-        log.to_csv("time_points.csv", index=False)
+        log.to_csv(filename, index=False)
 
     def get_stat(self):
         stat = pd.DataFrame(data=self.time_log, columns=[

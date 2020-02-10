@@ -1,0 +1,5 @@
+bronc -> smoke
+bronc -> dysp
+lung -> either
+either -> tub
+lung,either -> xray

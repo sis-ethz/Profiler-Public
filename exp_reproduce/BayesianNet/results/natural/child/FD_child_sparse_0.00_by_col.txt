@@ -1,0 +1,10 @@
+CO2 -> CO2Report
+Disease -> DuctFlow
+Disease -> LVH
+LVH -> LVHreport
+Disease -> CardiacMixing
+ChestXray -> LungFlow
+ChestXray -> LungParench
+LungParench -> Grunting
+Grunting -> GruntingReport
+ChestXray -> XrayReport

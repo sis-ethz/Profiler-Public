@@ -1,0 +1,3 @@
+Alarm -> JohnCalls
+Alarm -> MaryCalls
+Alarm -> Burglary

@@ -1,0 +1,12 @@
+pre6 -> pre10
+pre19 -> pre9
+pre19,pre9 -> pre11
+pre19,pre9,pre11 -> pre17
+pre19,pre9,pre11,pre17 -> pre25
+pre19,pre9,pre11,pre17,pre25 -> pre32
+pre19,pre25,pre32 -> pre7
+pre25,pre7 -> pre8
+pre19,pre32 -> pre30
+pre19,pre32 -> risk1yr
+pre32 -> dgn
+pre19 -> pre14

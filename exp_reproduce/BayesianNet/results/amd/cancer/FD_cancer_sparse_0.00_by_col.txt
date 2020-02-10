@@ -1,0 +1,3 @@
+Cancer -> Dyspnoea
+Cancer -> Smoker
+Cancer -> Xray

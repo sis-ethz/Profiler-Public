@@ -1,0 +1,16 @@
+CountyName -> ProviderNumber
+CountyName,ProviderNumber -> HospitalName
+CountyName,ProviderNumber,HospitalName -> Address1
+CountyName,ProviderNumber,HospitalName,Address1 -> City
+CountyName,ProviderNumber,HospitalName,Address1,City -> ZipCode
+CountyName,ProviderNumber,HospitalName,Address1,City,ZipCode -> PhoneNumber
+CountyName,ProviderNumber,HospitalName,Address1,City,ZipCode,PhoneNumber -> HospitalOwner
+CountyName,HospitalOwner -> State
+CountyName,HospitalOwner,State -> HospitalType
+CountyName,HospitalOwner,State,HospitalType -> EmergencyService
+State,HospitalType -> Condition
+State,HospitalType,Condition -> Stateavg
+HospitalType,Condition,Stateavg -> MeasureCode
+HospitalType,Condition,Stateavg,MeasureCode -> MeasureName
+HospitalType,Condition -> Sample
+HospitalType,Sample -> Score

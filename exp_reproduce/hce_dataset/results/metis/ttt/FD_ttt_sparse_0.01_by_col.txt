@@ -1,0 +1,9 @@
+mls -> tms
+mls,tms -> tls
+mls,tms,tls -> class
+mls,tms,tls,class -> trs
+mls,tls,class,trs -> mms
+tls,class,mms -> mrs
+class,mms -> brs
+tls,class,trs -> bms
+tls,class -> bls

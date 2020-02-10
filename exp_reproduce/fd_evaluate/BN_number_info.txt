@@ -1,0 +1,59 @@
+Read from CSV file: ./BN/child.csv
+Results from child.csv, on AutoFD
+t = [precision: 1.000 , recall: 0.500 , f1: 0.667 , total-inf: 10 , total-groundtruth: 20]
+Results from child.csv, on AutoFD_sparse_0.002
+t = [precision: 0.778 , recall: 0.700 , f1: 0.737 , total-inf: 18 , total-groundtruth: 20]
+Results from child.csv, on AutoFD_sparse_0.004
+t = [precision: 0.696 , recall: 0.800 , f1: 0.744 , total-inf: 23 , total-groundtruth: 20]
+Results from child.csv, on AutoFD_sparse_0.006
+t = [precision: 0.727 , recall: 0.800 , f1: 0.762 , total-inf: 22 , total-groundtruth: 20]
+Results from child.csv, on AutoFD_sparse_0.008
+t = [precision: 0.696 , recall: 0.800 , f1: 0.744 , total-inf: 23 , total-groundtruth: 20]
+Results from child.csv, on AutoFD_sparse_0.010
+t = [precision: 0.714 , recall: 0.750 , f1: 0.732 , total-inf: 21 , total-groundtruth: 20]
+Read from CSV file: ./BN/earthquake.csv
+Results from earthquake.csv, on AutoFD
+t = [precision: 1.000 , recall: 1.000 , f1: 1.000 , total-inf: 4 , total-groundtruth: 4]
+Results from earthquake.csv, on AutoFD_sparse_0.002
+t = [precision: 1.000 , recall: 0.750 , f1: 0.857 , total-inf: 3 , total-groundtruth: 4]
+Results from earthquake.csv, on AutoFD_sparse_0.004
+t = [precision: 1.000 , recall: 0.750 , f1: 0.857 , total-inf: 3 , total-groundtruth: 4]
+Results from earthquake.csv, on AutoFD_sparse_0.006
+t = [precision: 1.000 , recall: 0.750 , f1: 0.857 , total-inf: 3 , total-groundtruth: 4]
+Results from earthquake.csv, on AutoFD_sparse_0.008
+t = [precision: 1.000 , recall: 0.750 , f1: 0.857 , total-inf: 3 , total-groundtruth: 4]
+Results from earthquake.csv, on AutoFD_sparse_0.010
+t = [precision: 1.000 , recall: 0.750 , f1: 0.857 , total-inf: 3 , total-groundtruth: 4]
+Read from CSV file: ./BN/alarm.csv
+Results from alarm.csv, on AutoFD
+t = [precision: 0.839 , recall: 0.578 , f1: 0.684 , total-inf: 31 , total-groundtruth: 45]
+Results from alarm.csv, on AutoFD_sparse_0.002
+t = [precision: 0.723 , recall: 0.756 , f1: 0.739 , total-inf: 47 , total-groundtruth: 45]
+Results from alarm.csv, on AutoFD_sparse_0.004
+t = [precision: 0.694 , recall: 0.756 , f1: 0.723 , total-inf: 49 , total-groundtruth: 45]
+Results from alarm.csv, on AutoFD_sparse_0.006
+t = [precision: 0.640 , recall: 0.711 , f1: 0.674 , total-inf: 50 , total-groundtruth: 45]
+Results from alarm.csv, on AutoFD_sparse_0.008
+t = [precision: 0.627 , recall: 0.711 , f1: 0.667 , total-inf: 51 , total-groundtruth: 45]
+Results from alarm.csv, on AutoFD_sparse_0.010
+t = [precision: 0.633 , recall: 0.689 , f1: 0.660 , total-inf: 49 , total-groundtruth: 45]
+Read from CSV file: ./BN/cancer.csv
+Results from cancer.csv, on AutoFD
+t = [precision: 1.000 , recall: 0.750 , f1: 0.857 , total-inf: 3 , total-groundtruth: 4]
+Results from cancer.csv, on AutoFD_sparse_0.002
+t = [precision: 1.000 , recall: 0.250 , f1: 0.400 , total-inf: 1 , total-groundtruth: 4]
+Read from CSV file: ./BN/asia.csv
+Results from asia.csv, on AutoFD
+t = [precision: 1.000 , recall: 0.500 , f1: 0.667 , total-inf: 4 , total-groundtruth: 8]
+Results from asia.csv, on AutoFD_sparse_0.002
+t = [precision: 0.714 , recall: 0.625 , f1: 0.667 , total-inf: 7 , total-groundtruth: 8]
+Results from asia.csv, on AutoFD_sparse_0.004
+t = [precision: 0.667 , recall: 0.500 , f1: 0.571 , total-inf: 6 , total-groundtruth: 8]
+Results from asia.csv, on AutoFD_sparse_0.006
+t = [precision: 0.667 , recall: 0.500 , f1: 0.571 , total-inf: 6 , total-groundtruth: 8]
+Results from asia.csv, on AutoFD_sparse_0.008
+t = [precision: 0.667 , recall: 0.500 , f1: 0.571 , total-inf: 6 , total-groundtruth: 8]
+Results from asia.csv, on AutoFD_sparse_0.010
+t = [precision: 0.800 , recall: 0.500 , f1: 0.615 , total-inf: 5 , total-groundtruth: 8]
+Results: 
+{'child.csv': {'AutoFD': (1.0, 0.5, 0.6666666666666666), 'AutoFD_sparse_0.002': (0.7777777777777778, 0.7, 0.7368421052631577), 'AutoFD_sparse_0.004': (0.6956521739130435, 0.8, 0.7441860465116279), 'AutoFD_sparse_0.006': (0.7272727272727273, 0.8, 0.761904761904762), 'AutoFD_sparse_0.008': (0.6956521739130435, 0.8, 0.7441860465116279), 'AutoFD_sparse_0.010': (0.7142857142857143, 0.75, 0.7317073170731706)}, 'earthquake.csv': {'AutoFD': (1.0, 1.0, 1.0), 'AutoFD_sparse_0.002': (1.0, 0.75, 0.8571428571428571), 'AutoFD_sparse_0.004': (1.0, 0.75, 0.8571428571428571), 'AutoFD_sparse_0.006': (1.0, 0.75, 0.8571428571428571), 'AutoFD_sparse_0.008': (1.0, 0.75, 0.8571428571428571), 'AutoFD_sparse_0.010': (1.0, 0.75, 0.8571428571428571)}, 'alarm.csv': {'AutoFD': (0.8387096774193549, 0.5777777777777777, 0.6842105263157895), 'AutoFD_sparse_0.002': (0.723404255319149, 0.7555555555555555, 0.7391304347826088), 'AutoFD_sparse_0.004': (0.6938775510204082, 0.7555555555555555, 0.723404255319149), 'AutoFD_sparse_0.006': (0.64, 0.7111111111111111, 0.6736842105263158), 'AutoFD_sparse_0.008': (0.6274509803921569, 0.7111111111111111, 0.6666666666666666), 'AutoFD_sparse_0.010': (0.6326530612244898, 0.6888888888888889, 0.6595744680851063)}, 'cancer.csv': {'AutoFD': (1.0, 0.75, 0.8571428571428571), 'AutoFD_sparse_0.002': (1.0, 0.25, 0.4), 'AutoFD_sparse_0.004': (nan, nan, nan), 'AutoFD_sparse_0.006': (nan, nan, nan), 'AutoFD_sparse_0.008': (nan, nan, nan), 'AutoFD_sparse_0.010': (nan, nan, nan)}, 'asia.csv': {'AutoFD': (1.0, 0.5, 0.6666666666666666), 'AutoFD_sparse_0.002': (0.7142857142857143, 0.625, 0.6666666666666666), 'AutoFD_sparse_0.004': (0.6666666666666666, 0.5, 0.5714285714285715), 'AutoFD_sparse_0.006': (0.6666666666666666, 0.5, 0.5714285714285715), 'AutoFD_sparse_0.008': (0.6666666666666666, 0.5, 0.5714285714285715), 'AutoFD_sparse_0.010': (0.8, 0.5, 0.6153846153846154)}}
