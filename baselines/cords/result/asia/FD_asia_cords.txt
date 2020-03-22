@@ -1,0 +1,14 @@
+dysp->xray
+dysp->bronc
+lung->xray
+lung->dysp
+either->xray
+either->dysp
+either->lung
+smoke->xray
+smoke->bronc
+smoke->dysp
+smoke->lung
+smoke->either
+tub->xray
+tub->either

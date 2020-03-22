@@ -1,0 +1,6 @@
+shape->age
+margin->age
+margin->shape
+severity->age
+severity->shape
+severity->margin

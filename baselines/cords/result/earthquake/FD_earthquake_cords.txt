@@ -1,0 +1,6 @@
+MaryCalls->Burglary
+Alarm->Burglary
+Alarm->MaryCalls
+JohnCalls->Burglary
+JohnCalls->MaryCalls
+JohnCalls->Alarm
