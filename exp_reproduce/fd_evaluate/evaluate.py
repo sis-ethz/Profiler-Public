@@ -98,20 +98,23 @@ if __name__ == '__main__':
     #                 to_file = '_'.join(
     #                     ['base', 't' + t, 'r' + r, 'd' + d, 'n0_0', n + '.csv'])
     #                 copy_result_files(base_file, to_file)
-    base_dir = './BN/'
+    base_dir = './synthetic/'
     files = []
-    # files = os.listdir(base_dir)
+
     for f in os.listdir(base_dir):
         if 'csv' in f:
             files.append(f)
-    # col_candidates = ['AutoFD', 'AutoFD_sparse', 'GL', 'PYRO', 'TANE']
-    col_candidates = ['AutoFD', 'AutoFD_sparse', 'GL', 'PYRO', 'TANE',
-                      'RFI-top1-a-0.3', 'RFI-top1-a-0.5', 'RFI-top1-a-1']
 
-    col_candidates = ['AutoFD', 'AutoFD_sparse_0.002', 'AutoFD_sparse_0.004', 'AutoFD_sparse_0.006', 'AutoFD_sparse_0.008',
-                      'AutoFD_sparse_0.010']
+    # col_candidates = ['AutoFD', 'AutoFD_sparse', 'GL', 'PYRO', 'TANE']
+    # col_candidates = ['AutoFD', 'AutoFD_sparse', 'GL', 'PYRO', 'TANE',
+    #                   'RFI-top1-a-0.3', 'RFI-top1-a-0.5', 'RFI-top1-a-1']
+
+    # col_candidates = ['AutoFD', 'AutoFD_sparse_0.002', 'AutoFD_sparse_0.004', 'AutoFD_sparse_0.006', 'AutoFD_sparse_0.008',
+    #                   'AutoFD_sparse_0.010']
     # col_candidates = ['AutoFD', 'AutoFD gd', 'AutoFD_amd',
     #                   'AutoFD_colamd', 'AutoFD_metis',	'AutoFD_natural', 'AutoFD_nesdis']
+
+    col_candidates = ['CORDS']
 
     ground_truth_col = 'Ground truth pairs extended'
     results = {}
@@ -125,5 +128,5 @@ if __name__ == '__main__':
         results[f] = res
     print("Results: ")
     print(results)
-    with open('result_BN_sparse.json', 'w') as fp:
+    with open('result_syn_CORDS.json', 'w') as fp:
         json.dump(results, fp)

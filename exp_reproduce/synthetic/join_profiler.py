@@ -46,7 +46,7 @@ def run_profiler(dataset, base_dir, sparsity=0, difference=True, ordering_method
         os.system('mkdir ./result/' + name + '/')
     if not os.path.exists('./result/%s/heatmap/' % name):
         os.system('mkdir ./result/%s/heatmap/' % name)
-    pf = Profiler(workers=50, tol=1e-6, eps=0.05, embedtxt=False)
+    pf = Profiler(workers=50, tol=1e-3, eps=0.05, embedtxt=False)
 
     pf.session.load_data(name='%s' % name, src=FILE,
                          fpath='%s' % os.path.join(base_dir, dataset), check_param=True)
@@ -73,14 +73,15 @@ if __name__ == "__main__":
         diff = False
     else:
         diff = True
-    high_files = os.listdir('./nhigh/')
-    low_files = os.listdir('./nlow/')
+    # high_files = os.listdir('./nhigh/')
+    # low_files = os.listdir('./nlow/')
 
-    high_files = ['base_tlarge_rlarge_dsmall_n0_0.csv']
+    high_files = ['base_tlarge_rsmall_dlarge_n0_0.csv']
     # low_files = ['base_tsmall_rsmall_dsmall_n0_0.csv']
     low_files = []
 
     for f in tqdm(high_files):
-        run_profiler(f, base_dir='./nhigh/', sparsity=0, difference=diff)
-    for f in tqdm(low_files):
-        run_profiler(f, base_dir='./nlow/', sparsity=0, difference=diff)
+        run_profiler(f, base_dir='./nhigh/', sparsity=0.02,
+                     difference=diff, ordering_method='natural')
+    # for f in tqdm(low_files):
+    #     run_profiler(f, base_dir='./nlow/', sparsity=0, difference=diff)

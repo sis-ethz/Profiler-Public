@@ -1,16 +1,16 @@
 # Add global arguments
+import random
+import os
+import logging
+import numpy as np
+from profiler.globalvar import *
+from profiler.learner import StructureLearner
+from profiler.data.embedding import EmbeddingEngine
+from profiler.data.transformer import TransformEngine
+from profiler.data.dataset import Dataset
+from profiler.utility import GlobalTimer
 import matplotlib
 matplotlib.use("Agg")
-from profiler.utility import GlobalTimer
-from profiler.data.dataset import Dataset
-from profiler.data.transformer import TransformEngine
-from profiler.data.embedding import EmbeddingEngine
-from profiler.learner import StructureLearner
-from profiler.globalvar import *
-import numpy as np
-import logging
-import os
-import random
 
 
 logging.basicConfig()
@@ -243,6 +243,14 @@ class Session(object):
         results = self.struct_engine.get_dependencies(
             heatmap=heatmap, score=score, write_to=write_to)
         self.timer.time_end('Get Dependencies')
+        print(results)
+        return results
+
+    def get_corelations(self, heatmap=None, write_to=None):
+        self.timer.time_start('Get Corelations')
+        results = self.struct_engine.get_corelations(
+            heatmap=heatmap, write_to=write_to)
+        self.timer.time_end('Get Corelations')
         print(results)
         return results
 

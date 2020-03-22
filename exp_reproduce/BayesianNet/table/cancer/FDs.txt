@@ -1,0 +1,3 @@
+Cancer -> Smoker (0.2407568692165003)
+Cancer -> Dyspnoea (0.2433101647360254)
+Cancer -> Xray (0.22518420552330712)

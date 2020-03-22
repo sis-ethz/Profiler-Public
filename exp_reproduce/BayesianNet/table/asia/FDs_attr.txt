@@ -1,0 +1,6 @@
+dysp
+lung
+tub
+asia
+xray
+bronc

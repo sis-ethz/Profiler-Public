@@ -19,27 +19,30 @@ def normalized_sim(diff, threshold_type=2):
         # standardizing and set all value below or above as zeros
         np_diff = diff.values
         scaler = preprocessing.StandardScaler()
-        np_diff = scaler.fit_transform(np_diff.reshape(-1,1))
+        np_diff = scaler.fit_transform(np_diff.reshape(-1, 1))
         zero_trans = scaler.transform([[0]])
         for i in range(np_diff.shape[1]):
-            if zero_trans[i] >=0 :
-                np_diff[np_diff[:, i]>=0] = 0
+            if zero_trans[i] >= 0:
+                np_diff[np_diff[:, i] >= 0] = 0
             else:
-                np_diff[np_diff[:, i]<0] = 0
-        ret = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+                np_diff[np_diff[:, i] < 0] = 0
+        ret = pd.Series(data=np.abs(np_diff.flatten()),
+                        index=diff.index, name=diff.name)
     elif threshold_type == 2:
         # standardizing and take abs value
         np_diff = diff.values
         scaler = preprocessing.StandardScaler()
-        np_diff = scaler.fit_transform(np_diff.reshape(-1,1))
-        ret = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+        np_diff = scaler.fit_transform(np_diff.reshape(-1, 1))
+        ret = pd.Series(data=np.abs(np_diff.flatten()),
+                        index=diff.index, name=diff.name)
     elif threshold_type == 3:
-        # k-means to seperate and assign zeros to values within the same class of 0 
+        # k-means to seperate and assign zeros to values within the same class of 0
         np_diff = np.abs(diff.values.flatten())
         np_diff = np.nan_to_num(np_diff).astype(np.float64)
         centers, _ = kmeans(np_diff, k_or_guess=2)
-        np_diff[ np_diff <= np.mean(centers) ] = 0
-        ret = pd.Series(data=np.abs(np_diff.flatten()), index=diff.index, name=diff.name)
+        np_diff[np_diff <= np.mean(centers)] = 0
+        ret = pd.Series(data=np.abs(np_diff.flatten()),
+                        index=diff.index, name=diff.name)
     else:
         ret = 1 - np.abs(diff) / np.nanmax(np.abs(diff))
     return ret
@@ -49,7 +52,8 @@ def compute_differences(attr, dtype, env, operators, left, right, embed):
     if dtype == CATEGORICAL:
         df, c = compute_differences_categorical(env, attr, left, right)
     elif dtype == NUMERIC:
-        df, c = compute_differences_numerical(env, attr, operators, left, right)
+        df, c = compute_differences_numerical(
+            env, attr, operators, left, right)
     elif dtype == DATE:
         df, c = compute_differences_date(env, attr, operators, left, right)
     elif dtype == TEXT:
@@ -68,7 +72,8 @@ def compute_differences_text(env, attr, left, right, embed, sim_type=1):
     # sim_type = 2 / else: Euclidean distance between text
 
     if embed is None:
-        raise Exception('ERROR while creating training data. Embedding model is none')
+        raise Exception(
+            'ERROR while creating training data. Embedding model is none')
     # handle null
     mask = left[(left == env['null']) | (right == env['null'])].index.values
 
@@ -76,17 +81,17 @@ def compute_differences_text(env, attr, left, right, embed, sim_type=1):
 
     left = embed.get_embedding(left, attr=attr).squeeze()
     right = embed.get_embedding(right, attr=attr).squeeze()
-    
+
     if sim_type == 1:
         # Cosine similarity
         sim = np.sum(np.multiply(left, right), axis=1) / (np.sqrt(np.sum(np.square(left), axis=1)) *
-                                                np.sqrt(np.sum(np.square(right), axis=1)))
+                                                          np.sqrt(np.sum(np.square(right), axis=1)))
     else:
         # Euclidean distance
         sub = left - right
         sim = np.sqrt(np.sum(np.multiply(sub, sub), axis=1))
         scaler = preprocessing.MinMaxScaler()
-        sim = scaler.fit_transform(sim.reshape([len(sim),1])).flatten()
+        sim = scaler.fit_transform(sim.reshape([len(sim), 1])).flatten()
 
     if env['continuous']:
         df[attr] = sim
@@ -103,19 +108,20 @@ def compute_differences_categorical(env, attr, left, right):
     mask = left[(left == env['null']) | (right == env['null'])].index.values
     df[attr] = np.equal(left, right)*1
 
-    # if the values are categorially equal to each other 
+    # if the values are categorially equal to each other
     # handle null
     df.iloc[mask, :] = np.zeros((len(mask), df.shape[1]))
     return df, len(mask)
 
 
 def compute_differences_numerical(env, attr, operators, left, right):
-    diff = left - right # directly calculate the deduction of left and right
+    diff = left - right  # directly calculate the deduction of left and right
     return compute_differences_numerical_helper(env, attr, operators, left, diff)
 
 
 def compute_differences_date(env, attr, operators, left, right):
-    diff = ((left.values - right.values) / np.timedelta64(1, 's')).astype('float')
+    diff = ((left.values - right.values) /
+            np.timedelta64(1, 's')).astype('float')
     return compute_differences_numerical_helper(env, attr, operators, left, diff)
 
 
@@ -177,12 +183,16 @@ class TransformEngine(object):
         # n > 1/eps^2*logp*(s+p) -> n > 1/eps^2*logp*((p-1)^2/2+p) = 1/eps^2*logp*(p^2/2 + 1/2)
         p = np.sum([len(op) for op in self.ds.operators.values()])
         min_n = 1/np.square(self.env['eps'])*np.log(p)*(np.square(p)/2+0.5)
-        multiplier = int(np.ceil(min_n / (self.ds.df.shape[0] * self.ds.df.shape[1] * sample_frac)))
+        multiplier = int(
+            np.ceil(min_n / (self.ds.df.shape[0] * self.ds.df.shape[1] * sample_frac)))
         # multiplier
-        logger.info("needs multiplier = %d to bound the error in inv cov estimation <= %.8f"%(multiplier, self.env['eps']))
+        logger.info("needs multiplier = %d to bound the error in inv cov estimation <= %.8f" % (
+            multiplier, self.env['eps']))
         multiplier = min(max(1, multiplier), self.ds.df.shape[0]-1)
-        self.env['eps'] = (np.sqrt(np.square(p-1)/2+p) / (multiplier*self.ds.df.shape[0]))
-        logger.info("use multiplier = %d, and the bound is %.8f"%(multiplier, self.env['eps']))
+        self.env['eps'] = (np.sqrt(np.square(p-1)/2+p) /
+                           (multiplier*self.ds.df.shape[0]))
+        logger.info("use multiplier = %d, and the bound is %.8f" %
+                    (multiplier, self.env['eps']))
         return multiplier
 
     def create_training_data(self, multiplier=None, sample_frac=1, embed=None, difference=True):
@@ -193,7 +203,7 @@ class TransformEngine(object):
             # change all data into numerical rather than text or cat
             self.embed = embed
             data = self.transfer_data_into_all_num(data)
-            
+
             self.null_pb = 0
             self.sample_size = data.shape[0]
             self.training_data = data
@@ -206,7 +216,8 @@ class TransformEngine(object):
         multiplier = self.get_multiplier(multiplier, sample_frac)
 
         logger.info("Draw Pairs")
-        left, right, self.left_idx, self.right_idx = self.create_pair_data(multiplier, sample_frac)
+        left, right, self.left_idx, self.right_idx = self.create_pair_data(
+            multiplier, sample_frac)
 
         logger.info("Computing Differences")
         data_count = self.compute_differences(left, right)
@@ -221,7 +232,7 @@ class TransformEngine(object):
     def compute_differences(self, left, right):
         if self.env['workers'] < 1:
             data_count = [compute_differences(attr, self.ds.dtypes[attr], self.env, self.ds.operators[attr], left[attr],
-                                        right[attr], self.embed) for attr in self.ds.field]
+                                              right[attr], self.embed) for attr in self.ds.field]
         else:
             pool = ThreadPoolExecutor(self.env['workers'])
             data_count = list(pool.map(lambda attr: compute_differences(attr, self.ds.dtypes[attr], self.env,
@@ -230,17 +241,22 @@ class TransformEngine(object):
         return data_count
 
     def compute_null_pb(self, data_count, drop_cols):
-        null_counts = np.sum([attr[1] for i, attr in enumerate(data_count) if self.ds.df.columns.values[i] not in drop_cols])
-        self.null_pb = null_counts / (self.training_data.shape[0] * len(self.ds.field))
-        logger.info("estimated missing data probability in training data is %.4f" % self.null_pb)
+        null_counts = np.sum([attr[1] for i, attr in enumerate(
+            data_count) if self.ds.df.columns.values[i] not in drop_cols])
+        self.null_pb = null_counts / \
+            (self.training_data.shape[0] * len(self.ds.field))
+        logger.info(
+            "estimated missing data probability in training data is %.4f" % self.null_pb)
 
     def get_multiplier(self, multiplier, sample_frac):
         if multiplier is None:
             # set min multiplier to 10
-            multiplier = max(self.estimate_sample_size(sample_frac), 8)
+            multiplier = max(self.estimate_sample_size(sample_frac), 5)
             logger.info("Using multiplier %d" % multiplier)
         # conservative sample size, did not multiply by number of attributes since there may have repeated samples
-        self.sample_size = multiplier * int(np.ceil(self.ds.df.shape[0] * sample_frac / self.ds.df.shape[1]))
+        self.sample_size = multiplier * \
+            int(np.ceil(self.ds.df.shape[0] *
+                        sample_frac / self.ds.df.shape[1]))
         return multiplier
 
     def handle_nulls(self):
@@ -252,24 +268,27 @@ class TransformEngine(object):
     def transfer_data_into_all_num(self, data):
         for col in data.columns:
             if self.ds.dtypes[col] in ['categorical', 'text']:
-                frac_value = pd.factorize(data[col].values)[0].astype(np.float64)
-                frac_value = (np.abs(frac_value)) / (np.nanmax(np.abs(frac_value))) 
-                data.update( pd.DataFrame(frac_value, columns=[col]) )
+                frac_value = pd.factorize(data[col].values)[
+                    0].astype(np.float64)
+                frac_value = (np.abs(frac_value)) / \
+                    (np.nanmax(np.abs(frac_value)))
+                data.update(pd.DataFrame(frac_value, columns=[col]))
                 data[col] = data[col].astype(np.float64)
                 self.ds.dtypes[col] = 'numeric'
             elif self.ds.dtypes[col] in ['numeric']:
-                frac_value = np.abs(data[col].values) / np.nanmax(np.abs(data[col].values))
-                data.update( pd.DataFrame(frac_value, columns=[col]) )
+                frac_value = np.abs(data[col].values) / \
+                    np.nanmax(np.abs(data[col].values))
+                data.update(pd.DataFrame(frac_value, columns=[col]))
                 data[col] = data[col].astype(np.float64)
         data = data.reset_index(drop=True)
-        data = data.dropna()        
+        data = data.dropna()
         return data
-    
-    
+
     # Edited on 09/28/2019 by Yunjia
     # added a para for indicating if the training set should be sorted
     # the default attr_sort should be False (random permutation for every attr)
     # If attr_sort=False, should use lower sparsity configuration
+
     def create_pair_data(self, multiplier, sample_frac, attr_sort=True):
         multiplier = max(1, int(np.ceil(multiplier/self.ds.field.shape[0])))
         # shift and concate
@@ -281,13 +300,16 @@ class TransformEngine(object):
                 if attr_sort:
                     base_table = self.ds.df.sort_values(by=attr)
                 else:
-                    base_table = self.ds.df.reindex(np.random.permutation(self.ds.df.index))         
+                    base_table = self.ds.df.reindex(
+                        np.random.permutation(self.ds.df.index))
             else:
                 if attr_sort:
-                    base_table = self.ds.df.sample(frac=sample_frac).sort_values(by=attr)
-                else:    
+                    base_table = self.ds.df.sample(
+                        frac=sample_frac).sort_values(by=attr)
+                else:
                     base_table = self.ds.df.sample(frac=sample_frac)
-                    base_table = base_table.reindex(np.random.permutation(base_table.index))
+                    base_table = base_table.reindex(
+                        np.random.permutation(base_table.index))
             left = [base_table] * multiplier
             right = [base_table.iloc[list(range(i+1, base_table.shape[0])) + list(range(i+1)), :].reset_index(
                 drop=True) for i in range(multiplier)]
@@ -299,5 +321,5 @@ class TransformEngine(object):
         rights = pd.concat(rights)
         right_idx = rights.index.values
         rights = rights.reset_index(drop=True)
-        logger.info("Number of training samples: %d"%lefts.shape[0])
+        logger.info("Number of training samples: %d" % lefts.shape[0])
         return lefts, rights, left_idx, right_idx
