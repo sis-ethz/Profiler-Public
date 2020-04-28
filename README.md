@@ -1,5 +1,5 @@
 # FDX
-Source-code for the publication "A Statistical Perspective on Discovering Functional Dependencies in Noisy Data", [PDF](http://pages.cs.wisc.edu/~thodrek/mod0552-zhangA.pdf) 
+Source-code for the publication *A Statistical Perspective on Discovering Functional Dependencies in Noisy Data*, SIGMOD 2020, [\[PDF\]](http://pages.cs.wisc.edu/~thodrek/mod0552-zhangA.pdf) 
 
 This repository is still under development.
 Please use master branch for most recent stable version. 
