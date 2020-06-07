@@ -17,9 +17,9 @@ def visualize_heatmap(heatmap, title=None, filename="heatmap.png", save=True, di
     snsplt = sns.heatmap(heatmap, ax=ax, cmap="RdBu_r", center=0)
     if title:
         snsplt.set_title(title)
+    plt.show()
     if save:
         snsplt.get_figure().savefig(dir+filename, bbox_inches='tight')
-    plt.show()
 
 
 def find_all_subsets(S):

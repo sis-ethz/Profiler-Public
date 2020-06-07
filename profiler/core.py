@@ -10,7 +10,7 @@ from profiler.data.transformer import TransformEngine
 from profiler.data.dataset import Dataset
 from profiler.utility import GlobalTimer
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 
 
 logging.basicConfig()
@@ -254,8 +254,9 @@ class Session(object):
         print(results)
         return results
 
-    def visualize_covariance(self, filename='Covariance Matrix'):
-        self.struct_engine.visualize_covariance(filename=filename)
+    def visualize_covariance(self, filename='Covariance Matrix', write_pairs_file=None):
+        self.struct_engine.visualize_covariance(
+            filename=filename, write_pairs_file=write_pairs_file)
 
     def visualize_inverse_covariance(self, filename='Inverse Covariance Matrix'):
         self.struct_engine.visualize_inverse_covariance(filename=filename)

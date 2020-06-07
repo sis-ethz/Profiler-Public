@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 from sklearn.covariance import graphical_lasso
 from sklearn import covariance
 from profiler.utility import find_all_subsets, visualize_heatmap
@@ -132,7 +132,21 @@ class StructureLearner(object):
         # print("\n\nAttr w/ dependency: \n",self.inv_cov.columns[np.argwhere(np_inv_sum > threshold)])
 
 
-    def visualize_covariance(self, filename='Covariance Matrix'):
+    def visualize_covariance(self, filename='Covariance Matrix', write_pairs_file=None):
+        # print("===== \nCov: \n", self.cov)
+        # print("columns: ", self.cov.columns)
+        # print("idices: ", self.cov.index)
+        if write_pairs_file is not None:
+            threshold = 0.3
+            with open(write_pairs_file, 'w') as g:
+                for col in self.cov.columns:
+                    for idx in self.cov.index:
+                        if idx == col:
+                            break
+                        if self.cov[col].loc[idx] >= threshold:
+                            g.write("{} -> {}\n".format(col, idx))
+                            # print("get pair: {} -> {}".format(col, idx))
+
         visualize_heatmap(
             self.cov, title="Covariance Matrix", filename=filename)
 
