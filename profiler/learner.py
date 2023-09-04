@@ -234,6 +234,60 @@ class StructureLearner(object):
             parent_sets = get_dependencies_helper(heatmap, scoring_func, write_to=write_to)
         return parent_sets
 
+    def get_corelations(self, heatmap, score, write_to=None):
+        print("Getting corelations")
+        def get_corelations_helper(U_hat, s_func, write_to=None, by_col=True):
+            parent_sets = {}
+            if write_to is not None:
+                if by_col:
+                    file_name = write_to + "_by_col"
+                else:
+                    file_name = write_to + "_by_row"
+                    raise Exception("Cannot get by row")
+                fd_file = open(file_name + ".txt", 'w')
+                # attr_file = open(file_name + "_attr.txt", 'w')
+            else:
+                fd_file = None
+
+            # for i, attr in enumerate(U_hat):
+            for i in range(U_hat.shape[0]):
+                
+                attr = U_hat.columns[i]
+                columns = U_hat.columns.values[0:i]
+                val = np.abs(U_hat.iloc[0:i, i].values)
+                parents = columns[val > 0]
+                parent_sets[attr] = parents
+                if len(parents) > 0:
+                    s, _ = s_func((parents, attr))
+                    if fd_file:
+                        fd_file.write(
+                            "{} -> {}\n".format(",".join(parents), attr))
+                    # attr_file.write(attr + "\n")
+                    print("{} -> {} ({})".format(",".join(parents), attr, s))
+            if fd_file:
+                fd_file.close()
+            # attr_file.close()
+            return parent_sets
+
+        if score == "training_data_fd_vio_ratio":
+            scoring_func = self.training_data_fd_violation
+        elif score == "fit_error":
+            scoring_func = self.fit_error
+        else:
+            scoring_func = (lambda x: ("n/a", None))
+        
+        parent_sets = {}
+        if heatmap is None:
+            if self.inv_cov is not None:
+                parent_sets = get_corelations_helper(
+                    self.inv_cov, scoring_func, write_to=write_to)
+            elif self.Bs is not None:
+                raise NotImplementedError
+        else:
+            parent_sets = get_corelations_helper(
+                heatmap, scoring_func, write_to=write_to)
+        return parent_sets
+
     @staticmethod
     def get_df(matrix, columns):
         df = pd.DataFrame(data=matrix, columns=columns)
